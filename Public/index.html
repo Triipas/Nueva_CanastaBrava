@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>CRUD Productos</title>
+  <link rel="stylesheet" href="styles.css">
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <h1>CRUD Productos</h1>
+<input id="id_producto" type="number" placeholder="ID Producto">
+<input id="nombre_producto" placeholder="Nombre del producto">
+<textarea id="descripcion" placeholder="Descripción"></textarea>
+<input id="precio_unitario" type="number" step="0.01" placeholder="Precio unitario">
+<input id="stock_actual" type="number" placeholder="Stock actual">
+<input id="fecha_ingreso" type="date">
+<input id="id_categoria" type="number" placeholder="ID Categoría">
+<button onclick="crearProducto()">Agregar</button>
+<button onclick="obtenerProductos()">🔄 Recargar</button>
+
+<table border="1">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nombre</th>
+      <th>Descripción</th>
+      <th>Precio</th>
+      <th>Stock</th>
+      <th>Fecha Ingreso</th>
+      <th>ID Categoría</th>
+      <th>Acciones</th>
+    </tr>
+  </thead>
+  <tbody id="tabla-productos"></tbody>
+</table>
+
+</body>
+</html>

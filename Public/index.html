@@ -15,6 +15,7 @@
   <button onclick="obtenerDatos()">🔄 Recargar</button>
   <button id="btn-editar-global">✏️ Editar</button>
   <button id="btn-eliminar-global">🗑️ Eliminar</button>
+  <button id="btn-confirmar-eliminacion" style="display:none;">🗑️ Eliminar productos</button>
   <div id="boton-cancelar-modo-container" style="display: inline;"></div>
   <span id="contador-registros" style="margin-left: 15px;"></span>
 </div>
@@ -27,6 +28,9 @@
       <button type="button" onclick="cerrarFormularioPopup()">❌ Cancelar</button>
     </div>
   </div>
+
+  <!-- Contenedor para contenido dinámico, como confirmaciones -->
+  <div id="modal-contenido-dinamico" style="display:none;"></div>
 </div>
 
 <table border="1">

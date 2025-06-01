@@ -25,7 +25,6 @@ async function obtenerDatos() {
     renderizarTabla('tabla-productos', datos, columnasProductos, (tr, fila) => {
       tr.addEventListener("click", () => {
         if (modoEdicionActivo && !filaSeleccionada) activarEdicionEnFila(tr);
-        if (modoEliminacionActivo) eliminarFilaSeleccionada(tr);
       });
     });
 
@@ -101,15 +100,6 @@ async function confirmarEdicion(id) {
   cancelarModo();
 }
 
-// === Eliminar producto ===
-async function eliminarFilaSeleccionada(fila) {
-  const id = fila.children[0].textContent;
-  if (confirm(`¿Eliminar el ${entidad.slice(0, -1)} ID ${id}?`)) {
-    await fetch(`/${entidad}/${id}`, { method: 'DELETE' });
-  }
-  cancelarModo();
-}
-
 // === Estado global del CRUD ===
 let modoEdicionActivo = false;
 let modoEliminacionActivo = false;
@@ -122,10 +112,21 @@ function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => {}) {
 
   data.forEach(fila => {
     const tr = document.createElement('tr');
+    tr.dataset.id = fila[columnas[0]]; // ID dinámico por si se cambia entidad
+
+    // Agregar checkbox si está activo el modo eliminación múltiple
+    if (modoEliminacionActivo) {
+      const tdCheckbox = document.createElement('td');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.classList.add('checkbox-eliminar');
+      checkbox.dataset.id = fila[columnas[0]];
+      tdCheckbox.appendChild(checkbox);
+      tr.appendChild(tdCheckbox);
+    }
 
     columnas.forEach(col => {
       const valor = fila[col];
-
       let contenido = '';
       if (valor == null) {
         contenido = '';
@@ -143,6 +144,21 @@ function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => {}) {
     eventosPorFila(tr, fila);
     tabla.appendChild(tr);
   });
+
+  // Agregar encabezado de checkbox si está en modo eliminación
+  if (modoEliminacionActivo) {
+    const thead = document.querySelector("thead tr");
+    if (!thead.querySelector("th.checkbox-header")) {
+      const th = document.createElement("th");
+      th.textContent = ""; // vacío para checkbox
+      th.classList.add("checkbox-header");
+      thead.insertBefore(th, thead.firstChild);
+    }
+  } else {
+    // Limpiar columna de checkbox si ya no estamos en ese modo
+    const thCheckbox = document.querySelector("th.checkbox-header");
+    if (thCheckbox) thCheckbox.remove();
+  }
 }
 
 // === Manejo de modos ===
@@ -157,9 +173,21 @@ function cancelarModo() {
   modoEliminacionActivo = false;
   filaSeleccionada = null;
   activarBotonesGlobales();
+
+  document.getElementById("btn-eliminar-global").style.display = "inline-block";
+
+  const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
+  if (btnConfirmar) {
+    btnConfirmar.style.display = "none";
+
+    // También elimina event listener anterior (opcional)
+    btnConfirmar.replaceWith(btnConfirmar.cloneNode(true));
+  }
+
   document.getElementById("boton-cancelar-modo-container").innerHTML = '';
-  obtenerDatos(); // función que puedes redefinir según la entidad activa
+  obtenerDatos();
 }
+
 
 function activarModoEdicion() {
   if (modoEdicionActivo) return;
@@ -174,7 +202,21 @@ function activarModoEliminacion() {
   modoEliminacionActivo = true;
   desactivarBotonesGlobales();
   mostrarBotonCancelarModo();
-  alert("Haz clic en una fila para eliminarla.");
+
+  const btnEliminarGlobal = document.getElementById("btn-eliminar-global");
+  btnEliminarGlobal.style.display = "none";
+
+  const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
+  btnConfirmar.style.display = "inline-block";
+
+  // Clonamos para eliminar event listeners previos
+  const nuevoBtnConfirmar = btnConfirmar.cloneNode(true);
+  btnConfirmar.replaceWith(nuevoBtnConfirmar);
+
+  // **Agregar listener al nuevo botón**
+  nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados);
+
+  obtenerDatos(); // Para renderizar con checkboxes
 }
 
 function desactivarBotonesGlobales() {
@@ -183,8 +225,11 @@ function desactivarBotonesGlobales() {
 }
 
 function activarBotonesGlobales() {
-  document.getElementById("btn-editar-global").disabled = false;
-  document.getElementById("btn-eliminar-global").disabled = false;
+  const btnEditar = document.getElementById("btn-editar-global");
+  if (btnEditar) btnEditar.disabled = false;
+
+  const btnEliminar = document.getElementById("btn-eliminar-global");
+  if (btnEliminar) btnEliminar.disabled = false;
 }
 
 // Campos requeridos por entidad
@@ -230,6 +275,13 @@ function abrirFormularioPopup() {
 
 function cerrarFormularioPopup() {
   document.getElementById('modal-popup').classList.add('hidden');
+
+  // Mostrar formulario y ocultar contenido dinámico
+  document.getElementById("formulario-popup").style.display = "block";
+  document.querySelector("#modal-popup .modal-content").style.display = "block";
+
+  document.getElementById("modal-contenido-dinamico").style.display = "none";
+  document.getElementById("modal-contenido-dinamico").innerHTML = "";
 }
 
 async function guardarDesdePopup() {
@@ -271,4 +323,62 @@ function actualizarContadorRegistros(cantidad, nombreEntidad) {
 function mostrarErrorContador(nombreEntidad) {
   const contenedor = document.getElementById("contador-registros");
   contenedor.textContent = `⚠️ No se pudieron cargar los ${nombreEntidad}`;
+}
+
+async function confirmarEliminarSeleccionados() {
+  const checkboxes = document.querySelectorAll(".checkbox-eliminar:checked");
+  if (checkboxes.length === 0) {
+    alert("Debes seleccionar al menos un elemento para eliminar.");
+    return;
+  }
+
+  const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
+
+  // Mostrar modal de confirmación en el contenedor dinámico
+  const contenido = ids.map(id => `<li>ID: ${id}</li>`).join('');
+  const modalContenido = `
+    <div class="modal-content">
+      <h2>Confirmar eliminación</h2>
+      <p>¿Estás seguro de eliminar los siguientes ${entidad}?</p>
+      <ul>${contenido}</ul>
+      <div class="modal-buttons">
+        <button id="btn-eliminar-confirmar-final">✅ Confirmar</button>
+        <button onclick="cerrarFormularioPopup()">❌ Cancelar</button>
+      </div>
+    </div>
+  `;
+  
+  // Ocultar el formulario popup y mostrar el contenido dinámico
+  document.getElementById("formulario-popup").style.display = "none";
+  document.querySelector("#modal-popup .modal-content").style.display = "none";
+
+  const contenedorDinamico = document.getElementById("modal-contenido-dinamico");
+  contenedorDinamico.innerHTML = modalContenido;
+  contenedorDinamico.style.display = "block";
+
+  document.getElementById("modal-popup").classList.remove("hidden");
+
+  document.getElementById("btn-eliminar-confirmar-final").onclick = async () => {
+    await eliminarLote(ids);
+  };
+}
+
+async function eliminarLote(ids) {
+  const errores = [];
+
+  for (const id of ids) {
+    try {
+      const res = await fetch(`/${entidad}/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Falló el ID ${id}`);
+    } catch (error) {
+      errores.push(`❌ ID ${id}: ${error.message}`);
+    }
+  }
+
+  cerrarFormularioPopup();
+  if (errores.length > 0) {
+    alert("Algunas eliminaciones fallaron:\n" + errores.join('\n'));
+  }
+
+  cancelarModo(); // Recargar y salir del modo
 }

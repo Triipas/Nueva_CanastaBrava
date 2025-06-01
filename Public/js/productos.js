@@ -1,42 +1,63 @@
 document.addEventListener("DOMContentLoaded", () => {
-  crudAPI.inicializarControlesGlobales(obtenerProductos, activarEdicionEnFila, eliminarFilaSeleccionada);
-  obtenerProductos();
+  document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
+  document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
+  obtenerDatos();
 });
 
-async function obtenerProductos() {
+// === Configuración específica de "productos" ===
+const entidad = 'productos';
+const columnasProductos = [
+  'ID_PRODUCTO',
+  'NOMBRE_PRODUCTO',
+  'DESCRIPCION',
+  'PRECIO_UNITARIO',
+  'STOCK_ACTUAL',
+  'FECHA_INGRESO',
+  'ID_CATEGORIA'
+];
+
+// === Obtiene productos desde el backend ===
+async function obtenerDatos() {
   try {
-    const res = await fetch('/productos');
-    const productos = await res.json();
-    const tabla = document.getElementById('tabla-productos');
-    tabla.innerHTML = '';
+    const res = await fetch(`/${entidad}`);
+    const datos = await res.json();
 
-    productos.forEach(p => {
-      const fila = document.createElement('tr');
-
-      fila.innerHTML = `
-        <td>${p.ID_PRODUCTO}</td>
-        <td>${p.NOMBRE_PRODUCTO}</td>
-        <td>${p.DESCRIPCION || ''}</td>
-        <td>${p.PRECIO_UNITARIO.toFixed(2)}</td>
-        <td>${p.STOCK_ACTUAL}</td>
-        <td>${p.FECHA_INGRESO}</td>
-        <td>${p.ID_CATEGORIA}</td>
-      `;
-
-      fila.addEventListener("click", () => {
-        if (crudAPI.modoEdicionActivo && !crudAPI.filaSeleccionada) activarEdicionEnFila(fila);
-        if (crudAPI.modoEliminacionActivo) eliminarFilaSeleccionada(fila);
+    renderizarTabla('tabla-productos', datos, columnasProductos, (tr, fila) => {
+      tr.addEventListener("click", () => {
+        if (modoEdicionActivo && !filaSeleccionada) activarEdicionEnFila(tr);
+        if (modoEliminacionActivo) eliminarFilaSeleccionada(tr);
       });
-
-      tabla.appendChild(fila);
     });
   } catch (error) {
-    console.error('Error al cargar productos:', error);
+    console.error(`Error al cargar ${entidad}:`, error);
   }
 }
 
+// === Crear producto ===
+async function crearProducto() {
+  const id_producto = parseInt(document.getElementById('id_producto').value);
+  const nombre_producto = document.getElementById('nombre_producto').value;
+  const descripcion = document.getElementById('descripcion').value;
+  const precio_unitario = parseFloat(document.getElementById('precio_unitario').value);
+  const stock_actual = parseInt(document.getElementById('stock_actual').value);
+  const fecha_ingreso = document.getElementById('fecha_ingreso').value;
+  const id_categoria = parseInt(document.getElementById('id_categoria').value);
+
+  await fetch(`/${entidad}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_producto, nombre_producto, descripcion, precio_unitario,
+      stock_actual, fecha_ingreso, id_categoria
+    })
+  });
+
+  obtenerDatos();
+}
+
+// === Editar fila producto (solo para esta tabla por ahora) ===
 function activarEdicionEnFila(fila) {
-  crudAPI.filaSeleccionada = fila;
+  filaSeleccionada = fila;
   const celdas = fila.querySelectorAll("td");
   const valores = Array.from(celdas).map(td => td.textContent);
 
@@ -50,13 +71,14 @@ function activarEdicionEnFila(fila) {
     <td><input type="number" value="${valores[6]}" /></td>
     <td>
       <button onclick="confirmarEdicion(${valores[0]})">✅</button>
-      <button onclick="crudAPI.cancelarModo()">❌</button>
+      <button onclick="cancelarModo()">❌</button>
     </td>
   `;
 }
 
+// === Confirmar edición producto ===
 async function confirmarEdicion(id) {
-  const inputs = crudAPI.filaSeleccionada.querySelectorAll("input");
+  const inputs = filaSeleccionada.querySelectorAll("input");
 
   const data = {
     nombre_producto: inputs[0].value,
@@ -67,39 +89,97 @@ async function confirmarEdicion(id) {
     id_categoria: parseInt(inputs[5].value)
   };
 
-  await fetch(`/productos/${id}`, {
+  await fetch(`/${entidad}/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
   });
 
-  crudAPI.cancelarModo();
+  cancelarModo();
 }
 
+// === Eliminar producto ===
 async function eliminarFilaSeleccionada(fila) {
   const id = fila.children[0].textContent;
-  if (confirm(`¿Eliminar el producto ID ${id}?`)) {
-    await fetch(`/productos/${id}`, { method: 'DELETE' });
+  if (confirm(`¿Eliminar el ${entidad.slice(0, -1)} ID ${id}?`)) {
+    await fetch(`/${entidad}/${id}`, { method: 'DELETE' });
   }
-  crudAPI.cancelarModo();
+  cancelarModo();
 }
 
-async function crearProducto() {
-  const id_producto = parseInt(document.getElementById('id_producto').value);
-  const nombre_producto = document.getElementById('nombre_producto').value;
-  const descripcion = document.getElementById('descripcion').value;
-  const precio_unitario = parseFloat(document.getElementById('precio_unitario').value);
-  const stock_actual = parseInt(document.getElementById('stock_actual').value);
-  const fecha_ingreso = document.getElementById('fecha_ingreso').value;
-  const id_categoria = parseInt(document.getElementById('id_categoria').value);
+// === Estado global del CRUD ===
+let modoEdicionActivo = false;
+let modoEliminacionActivo = false;
+let filaSeleccionada = null;
 
-  await fetch('/productos', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id_producto, nombre_producto, descripcion, precio_unitario, stock_actual, fecha_ingreso, id_categoria
-    })
+// === Utilidad genérica: Renderizar tabla con manejo de valores null y números ===
+function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => {}) {
+  const tabla = document.getElementById(idTabla);
+  tabla.innerHTML = '';
+
+  data.forEach(fila => {
+    const tr = document.createElement('tr');
+
+    columnas.forEach(col => {
+      const valor = fila[col];
+
+      let contenido = '';
+      if (valor == null) {
+        contenido = '';
+      } else if (typeof valor === 'number') {
+        contenido = Number.isInteger(valor) ? valor : valor.toFixed(2);
+      } else {
+        contenido = valor;
+      }
+
+      const td = document.createElement('td');
+      td.textContent = contenido;
+      tr.appendChild(td);
+    });
+
+    eventosPorFila(tr, fila);
+    tabla.appendChild(tr);
   });
+}
 
-  obtenerProductos();
+// === Manejo de modos ===
+function mostrarBotonCancelarModo() {
+  const container = document.getElementById("boton-cancelar-modo-container");
+  container.innerHTML = `<button id="btn-cancelar-modo">❌ Cancelar modo</button>`;
+  document.getElementById("btn-cancelar-modo").addEventListener("click", cancelarModo);
+}
+
+function cancelarModo() {
+  modoEdicionActivo = false;
+  modoEliminacionActivo = false;
+  filaSeleccionada = null;
+  activarBotonesGlobales();
+  document.getElementById("boton-cancelar-modo-container").innerHTML = '';
+  obtenerDatos(); // función que puedes redefinir según la entidad activa
+}
+
+function activarModoEdicion() {
+  if (modoEdicionActivo) return;
+  modoEdicionActivo = true;
+  desactivarBotonesGlobales();
+  mostrarBotonCancelarModo();
+  alert("Haz clic en una fila para editarla.");
+}
+
+function activarModoEliminacion() {
+  if (modoEliminacionActivo) return;
+  modoEliminacionActivo = true;
+  desactivarBotonesGlobales();
+  mostrarBotonCancelarModo();
+  alert("Haz clic en una fila para eliminarla.");
+}
+
+function desactivarBotonesGlobales() {
+  document.getElementById("btn-editar-global").disabled = true;
+  document.getElementById("btn-eliminar-global").disabled = true;
+}
+
+function activarBotonesGlobales() {
+  document.getElementById("btn-editar-global").disabled = false;
+  document.getElementById("btn-eliminar-global").disabled = false;
 }

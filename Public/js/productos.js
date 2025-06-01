@@ -1,53 +1,7 @@
-let modoEdicionActivo = false;
-let modoEliminacionActivo = false;
-let filaSeleccionada = null;
-
 document.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
-  document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
+  crudAPI.inicializarControlesGlobales(obtenerProductos, activarEdicionEnFila, eliminarFilaSeleccionada);
   obtenerProductos();
 });
-
-function mostrarBotonCancelarModo() {
-  const container = document.getElementById("boton-cancelar-modo-container");
-  container.innerHTML = `<button id="btn-cancelar-modo">❌ Cancelar modo</button>`;
-  document.getElementById("btn-cancelar-modo").addEventListener("click", cancelarModo);
-}
-
-function cancelarModo() {
-  modoEdicionActivo = false;
-  modoEliminacionActivo = false;
-  filaSeleccionada = null;
-  activarBotonesGlobales();
-  document.getElementById("boton-cancelar-modo-container").innerHTML = '';
-  obtenerProductos();
-}
-
-function activarModoEdicion() {
-  if (modoEdicionActivo) return;
-  modoEdicionActivo = true;
-  desactivarBotonesGlobales();
-  mostrarBotonCancelarModo();
-  alert("Haz clic en una fila para editarla.");
-}
-
-function activarModoEliminacion() {
-  if (modoEliminacionActivo) return;
-  modoEliminacionActivo = true;
-  desactivarBotonesGlobales();
-  mostrarBotonCancelarModo();
-  alert("Haz clic en una fila para eliminarla.");
-}
-
-function desactivarBotonesGlobales() {
-  document.getElementById("btn-editar-global").disabled = true;
-  document.getElementById("btn-eliminar-global").disabled = true;
-}
-
-function activarBotonesGlobales() {
-  document.getElementById("btn-editar-global").disabled = false;
-  document.getElementById("btn-eliminar-global").disabled = false;
-}
 
 async function obtenerProductos() {
   try {
@@ -70,8 +24,8 @@ async function obtenerProductos() {
       `;
 
       fila.addEventListener("click", () => {
-        if (modoEdicionActivo && !filaSeleccionada) activarEdicionEnFila(fila);
-        if (modoEliminacionActivo) eliminarFilaSeleccionada(fila);
+        if (crudAPI.modoEdicionActivo && !crudAPI.filaSeleccionada) activarEdicionEnFila(fila);
+        if (crudAPI.modoEliminacionActivo) eliminarFilaSeleccionada(fila);
       });
 
       tabla.appendChild(fila);
@@ -82,7 +36,7 @@ async function obtenerProductos() {
 }
 
 function activarEdicionEnFila(fila) {
-  filaSeleccionada = fila;
+  crudAPI.filaSeleccionada = fila;
   const celdas = fila.querySelectorAll("td");
   const valores = Array.from(celdas).map(td => td.textContent);
 
@@ -96,13 +50,13 @@ function activarEdicionEnFila(fila) {
     <td><input type="number" value="${valores[6]}" /></td>
     <td>
       <button onclick="confirmarEdicion(${valores[0]})">✅</button>
-      <button onclick="cancelarModo()">❌</button>
+      <button onclick="crudAPI.cancelarModo()">❌</button>
     </td>
   `;
 }
 
 async function confirmarEdicion(id) {
-  const inputs = filaSeleccionada.querySelectorAll("input");
+  const inputs = crudAPI.filaSeleccionada.querySelectorAll("input");
 
   const data = {
     nombre_producto: inputs[0].value,
@@ -119,7 +73,7 @@ async function confirmarEdicion(id) {
     body: JSON.stringify(data)
   });
 
-  cancelarModo();
+  crudAPI.cancelarModo();
 }
 
 async function eliminarFilaSeleccionada(fila) {
@@ -127,7 +81,7 @@ async function eliminarFilaSeleccionada(fila) {
   if (confirm(`¿Eliminar el producto ID ${id}?`)) {
     await fetch(`/productos/${id}`, { method: 'DELETE' });
   }
-  cancelarModo();
+  crudAPI.cancelarModo();
 }
 
 async function crearProducto() {

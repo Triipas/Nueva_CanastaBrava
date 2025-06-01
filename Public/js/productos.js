@@ -1,3 +1,54 @@
+let modoEdicionActivo = false;
+let modoEliminacionActivo = false;
+let filaSeleccionada = null;
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
+  document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
+  obtenerProductos();
+});
+
+function mostrarBotonCancelarModo() {
+  const container = document.getElementById("boton-cancelar-modo-container");
+  container.innerHTML = `<button id="btn-cancelar-modo">❌ Cancelar modo</button>`;
+  document.getElementById("btn-cancelar-modo").addEventListener("click", cancelarModo);
+}
+
+function cancelarModo() {
+  modoEdicionActivo = false;
+  modoEliminacionActivo = false;
+  filaSeleccionada = null;
+  activarBotonesGlobales();
+  document.getElementById("boton-cancelar-modo-container").innerHTML = '';
+  obtenerProductos();
+}
+
+function activarModoEdicion() {
+  if (modoEdicionActivo) return;
+  modoEdicionActivo = true;
+  desactivarBotonesGlobales();
+  mostrarBotonCancelarModo();
+  alert("Haz clic en una fila para editarla.");
+}
+
+function activarModoEliminacion() {
+  if (modoEliminacionActivo) return;
+  modoEliminacionActivo = true;
+  desactivarBotonesGlobales();
+  mostrarBotonCancelarModo();
+  alert("Haz clic en una fila para eliminarla.");
+}
+
+function desactivarBotonesGlobales() {
+  document.getElementById("btn-editar-global").disabled = true;
+  document.getElementById("btn-eliminar-global").disabled = true;
+}
+
+function activarBotonesGlobales() {
+  document.getElementById("btn-editar-global").disabled = false;
+  document.getElementById("btn-eliminar-global").disabled = false;
+}
+
 async function obtenerProductos() {
   try {
     const res = await fetch('/productos');
@@ -7,25 +58,76 @@ async function obtenerProductos() {
 
     productos.forEach(p => {
       const fila = document.createElement('tr');
+
       fila.innerHTML = `
         <td>${p.ID_PRODUCTO}</td>
         <td>${p.NOMBRE_PRODUCTO}</td>
         <td>${p.DESCRIPCION || ''}</td>
-        <td>S/. ${p.PRECIO_UNITARIO?.toFixed(2) || '0.00'}</td>
+        <td>${p.PRECIO_UNITARIO.toFixed(2)}</td>
         <td>${p.STOCK_ACTUAL}</td>
         <td>${p.FECHA_INGRESO}</td>
         <td>${p.ID_CATEGORIA}</td>
-        <td>
-          <button onclick="editarProducto('${p.ID_PRODUCTO}')">✏️</button>
-          <button onclick="eliminarProducto('${p.ID_PRODUCTO}')">🗑️</button>
-        </td>
       `;
+
+      fila.addEventListener("click", () => {
+        if (modoEdicionActivo && !filaSeleccionada) activarEdicionEnFila(fila);
+        if (modoEliminacionActivo) eliminarFilaSeleccionada(fila);
+      });
+
       tabla.appendChild(fila);
     });
   } catch (error) {
-    alert('Error al cargar productos');
-    console.error(error);
+    console.error('Error al cargar productos:', error);
   }
+}
+
+function activarEdicionEnFila(fila) {
+  filaSeleccionada = fila;
+  const celdas = fila.querySelectorAll("td");
+  const valores = Array.from(celdas).map(td => td.textContent);
+
+  fila.innerHTML = `
+    <td>${valores[0]}</td>
+    <td><input type="text" value="${valores[1]}" /></td>
+    <td><input type="text" value="${valores[2]}" /></td>
+    <td><input type="number" step="0.01" value="${valores[3]}" /></td>
+    <td><input type="number" value="${valores[4]}" /></td>
+    <td><input type="date" value="${valores[5]}" /></td>
+    <td><input type="number" value="${valores[6]}" /></td>
+    <td>
+      <button onclick="confirmarEdicion(${valores[0]})">✅</button>
+      <button onclick="cancelarModo()">❌</button>
+    </td>
+  `;
+}
+
+async function confirmarEdicion(id) {
+  const inputs = filaSeleccionada.querySelectorAll("input");
+
+  const data = {
+    nombre_producto: inputs[0].value,
+    descripcion: inputs[1].value,
+    precio_unitario: parseFloat(inputs[2].value),
+    stock_actual: parseInt(inputs[3].value),
+    fecha_ingreso: inputs[4].value,
+    id_categoria: parseInt(inputs[5].value)
+  };
+
+  await fetch(`/productos/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+
+  cancelarModo();
+}
+
+async function eliminarFilaSeleccionada(fila) {
+  const id = fila.children[0].textContent;
+  if (confirm(`¿Eliminar el producto ID ${id}?`)) {
+    await fetch(`/productos/${id}`, { method: 'DELETE' });
+  }
+  cancelarModo();
 }
 
 async function crearProducto() {
@@ -37,46 +139,13 @@ async function crearProducto() {
   const fecha_ingreso = document.getElementById('fecha_ingreso').value;
   const id_categoria = parseInt(document.getElementById('id_categoria').value);
 
-  if (nombre_producto && !isNaN(precio_unitario) && !isNaN(stock_actual) && fecha_ingreso && !isNaN(id_categoria)) {
-    await fetch('/productos', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id_producto, nombre_producto, descripcion, precio_unitario, stock_actual, fecha_ingreso, id_categoria
-      })
-    });
-    obtenerProductos();
-  }
-}
+  await fetch('/productos', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      id_producto, nombre_producto, descripcion, precio_unitario, stock_actual, fecha_ingreso, id_categoria
+    })
+  });
 
-async function eliminarProducto(id) {
-  await fetch(`/productos/${id}`, { method: 'DELETE' });
   obtenerProductos();
 }
-
-async function editarProducto(id) {
-  const nuevoNombre = prompt('Nuevo nombre:');
-  const nuevaDescripcion = prompt('Nueva descripción:');
-  const nuevoPrecio = prompt('Nuevo precio:');
-  const nuevoStock = prompt('Nuevo stock:');
-  const nuevaFecha = prompt('Nueva fecha (YYYY-MM-DD):');
-  const nuevaCategoria = prompt('Nuevo ID categoría:');
-
-  if (nuevoNombre && nuevaDescripcion && nuevoPrecio && nuevoStock && nuevaFecha && nuevaCategoria) {
-    await fetch(`/productos/${id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        nombre_producto: nuevoNombre,
-        descripcion: nuevaDescripcion,
-        precio_unitario: parseFloat(nuevoPrecio),
-        stock_actual: parseInt(nuevoStock),
-        fecha_ingreso: nuevaFecha,
-        id_categoria: parseInt(nuevaCategoria)
-      })
-    });
-    obtenerProductos();
-  }
-}
-
-obtenerProductos();

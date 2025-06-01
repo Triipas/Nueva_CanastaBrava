@@ -15,8 +15,14 @@
 <input id="stock_actual" type="number" placeholder="Stock actual">
 <input id="fecha_ingreso" type="date">
 <input id="id_categoria" type="number" placeholder="ID Categoría">
-<button onclick="crearProducto()">Agregar</button>
-<button onclick="obtenerProductos()">🔄 Recargar</button>
+<!-- Botones globales encima de la tabla -->
+<div id="botones-globales">
+  <button onclick="crearProducto()">Agregar</button>
+  <button onclick="obtenerProductos()">🔄 Recargar</button>
+  <button id="btn-editar-global">✏️ Editar</button>
+  <button id="btn-eliminar-global">🗑️ Eliminar</button>
+  <div id="boton-cancelar-modo-container" style="display: inline;"></div>
+</div>
 
 <table border="1">
   <thead>
@@ -28,7 +34,6 @@
       <th>Stock</th>
       <th>Fecha Ingreso</th>
       <th>ID Categoría</th>
-      <th>Acciones</th>
     </tr>
   </thead>
   <tbody id="tabla-productos"></tbody>

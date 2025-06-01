@@ -1,27 +1,31 @@
 async function obtenerProductos() {
-  const res = await fetch('/productos');
-  const productos = await res.json();
-  const tabla = document.getElementById('tabla-productos');
-  tabla.innerHTML = '';
+  try {
+    const res = await fetch('/productos');
+    const productos = await res.json();
+    const tabla = document.getElementById('tabla-productos');
+    tabla.innerHTML = '';
 
-  productos.forEach(p => {
-    const fila = document.createElement('tr');
-    
-    fila.innerHTML = `
-      <td>${p.ID_PRODUCTO}</td>
-      <td>${p.NOMBRE_PRODUCTO}</td>
-      <td>${p.DESCRIPCION || ''}</td>
-      <td>S/. ${p.PRECIO_UNITARIO?.toFixed(2) || '0.00'}</td>
-      <td>${p.STOCK_ACTUAL}</td>
-      <td>${p.FECHA_INGRESO}</td>
-      <td>${p.ID_CATEGORIA}</td>
-      <td>
-        <button onclick="editarProducto('${p.ID_PRODUCTO}')">✏️</button>
-        <button onclick="eliminarProducto('${p.ID_PRODUCTO}')">🗑️</button>
-      </td>
-    `;
-    tabla.appendChild(fila);
-  });
+    productos.forEach(p => {
+      const fila = document.createElement('tr');
+      fila.innerHTML = `
+        <td>${p.ID_PRODUCTO}</td>
+        <td>${p.NOMBRE_PRODUCTO}</td>
+        <td>${p.DESCRIPCION || ''}</td>
+        <td>S/. ${p.PRECIO_UNITARIO?.toFixed(2) || '0.00'}</td>
+        <td>${p.STOCK_ACTUAL}</td>
+        <td>${p.FECHA_INGRESO}</td>
+        <td>${p.ID_CATEGORIA}</td>
+        <td>
+          <button onclick="editarProducto('${p.ID_PRODUCTO}')">✏️</button>
+          <button onclick="eliminarProducto('${p.ID_PRODUCTO}')">🗑️</button>
+        </td>
+      `;
+      tabla.appendChild(fila);
+    });
+  } catch (error) {
+    alert('Error al cargar productos');
+    console.error(error);
+  }
 }
 
 async function crearProducto() {

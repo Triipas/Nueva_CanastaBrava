@@ -183,3 +183,79 @@ function activarBotonesGlobales() {
   document.getElementById("btn-editar-global").disabled = false;
   document.getElementById("btn-eliminar-global").disabled = false;
 }
+
+// Campos requeridos por entidad
+const camposRequeridosPorEntidad = {
+  productos: ['ID_PRODUCTO', 'NOMBRE_PRODUCTO']
+};
+
+function abrirFormularioPopup() {
+  const form = document.getElementById('formulario-popup');
+  const titulo = document.getElementById('modal-titulo');
+  form.innerHTML = '';
+  titulo.textContent = `Agregar nuevo ${entidad.slice(0, -1)}`;
+
+  columnasProductos.forEach(col => {
+    const label = document.createElement('label');
+    label.textContent = col;
+
+    const input = document.createElement('input');
+
+    // Tipo de input según el nombre de columna
+    if (col.toLowerCase().includes('fecha')) {
+      input.type = 'date';
+    } else if (col.toLowerCase().includes('id') || col.toLowerCase().includes('stock') || col.toLowerCase().includes('precio')) {
+      input.type = 'number';
+      input.step = 'any';
+    } else {
+      input.type = 'text'; // Incluye descripción como texto plano
+    }
+
+    input.name = col;
+
+    // Campo requerido si está definido en config
+    if (camposRequeridosPorEntidad[entidad]?.includes(col)) {
+      input.required = true;
+    }
+
+    form.appendChild(label);
+    form.appendChild(input);
+  });
+
+  document.getElementById('modal-popup').classList.remove('hidden');
+}
+
+function cerrarFormularioPopup() {
+  document.getElementById('modal-popup').classList.add('hidden');
+}
+
+async function guardarDesdePopup() {
+  const form = document.getElementById('formulario-popup');
+
+  if (!form.reportValidity()) return; // Fuerza validación HTML5 y evita submit si hay errores
+
+  const inputs = form.querySelectorAll('input');
+  const body = {};
+
+  inputs.forEach(input => {
+    const value = input.value.trim();
+    if (input.type === 'number') {
+      body[formatearClave(input.name)] = value ? parseFloat(value) : null;
+    } else {
+      body[formatearClave(input.name)] = value || null;
+    }
+  });
+
+  await fetch(`/${entidad}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  cerrarFormularioPopup();
+  obtenerDatos();
+}
+
+function formatearClave(clave) {
+  return clave.toLowerCase();
+}

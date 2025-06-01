@@ -3,27 +3,30 @@
 <head>
   <meta charset="UTF-8">
   <title>CRUD Productos</title>
-  <link rel="stylesheet" href="">
+  <link rel="stylesheet" href="/css/style.css">
   <script defer src="/js/productos.js"></script>
-  <script defer src="/js/crudUI.js"></script>
-  <script defer src="/js/crudAPI.js"></script>
 </head>
 <body>
   <h1>CRUD Productos</h1>
-<input id="id_producto" type="number" placeholder="ID Producto">
-<input id="nombre_producto" placeholder="Nombre del producto">
-<textarea id="descripcion" placeholder="Descripción"></textarea>
-<input id="precio_unitario" type="number" step="0.01" placeholder="Precio unitario">
-<input id="stock_actual" type="number" placeholder="Stock actual">
-<input id="fecha_ingreso" type="date">
-<input id="id_categoria" type="number" placeholder="ID Categoría">
+
 <!-- Botones globales encima de la tabla -->
 <div id="botones-globales">
-  <button onclick="crearProducto()">Agregar</button>
+  <button onclick="abrirFormularioPopup()">➕ Ingresar</button>
   <button onclick="obtenerDatos()">🔄 Recargar</button>
   <button id="btn-editar-global">✏️ Editar</button>
   <button id="btn-eliminar-global">🗑️ Eliminar</button>
   <div id="boton-cancelar-modo-container" style="display: inline;"></div>
+</div>
+
+<div id="modal-popup" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="modal-titulo">Agregar nuevo</h2>
+    <form id="formulario-popup"></form>
+    <div class="modal-buttons">
+      <button type="button" onclick="guardarDesdePopup()">✅ Añadir</button>
+      <button type="button" onclick="cerrarFormularioPopup()">❌ Cancelar</button>
+    </div>
+  </div>
 </div>
 
 <table border="1">

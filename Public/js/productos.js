@@ -28,8 +28,11 @@ async function obtenerDatos() {
         if (modoEliminacionActivo) eliminarFilaSeleccionada(tr);
       });
     });
+
+    actualizarContadorRegistros(datos.length, entidad);
   } catch (error) {
     console.error(`Error al cargar ${entidad}:`, error);
+    mostrarErrorContador(entidad);
   }
 }
 
@@ -258,4 +261,14 @@ async function guardarDesdePopup() {
 
 function formatearClave(clave) {
   return clave.toLowerCase();
+}
+
+function actualizarContadorRegistros(cantidad, nombreEntidad) {
+  const contenedor = document.getElementById("contador-registros");
+  contenedor.textContent = `📦 Mostrando ${cantidad} ${nombreEntidad}`;
+}
+
+function mostrarErrorContador(nombreEntidad) {
+  const contenedor = document.getElementById("contador-registros");
+  contenedor.textContent = `⚠️ No se pudieron cargar los ${nombreEntidad}`;
 }

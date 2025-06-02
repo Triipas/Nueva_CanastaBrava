@@ -1,28 +1,47 @@
-let datos = [];
-let paginaActual = 1;
-let filtroColumnaActual = null;
-let filtroValorActual = null;
-let paginasTotales = 1;
-let limite = 10;
+const configuracionEntidad = {
+  productos: {
+    nombre: 'productos',
+    columnas: [
+      { nombre: 'ID_PRODUCTO', tipo: 'id' },
+      { nombre: 'NOMBRE_PRODUCTO', tipo: 'texto' },
+      { nombre: 'DESCRIPCION', tipo: 'texto' },
+      { nombre: 'PRECIO_UNITARIO', tipo: 'numero' },
+      { nombre: 'STOCK_ACTUAL', tipo: 'numero' },
+      { nombre: 'FECHA_INGRESO', tipo: 'fecha' },
+      { nombre: 'ID_CATEGORIA', tipo: 'id' }
+    ],
+    camposRequeridos: ['ID_PRODUCTO', 'NOMBRE_PRODUCTO']
+  }
+};
 
+let entidadActiva = 'productos';
+let datos = [], paginaActual = 1, filtroColumnaActual = null, filtroValorActual = null, paginasTotales = 1, limite = 10;
+let modoEdicionActivo = false, modoEliminacionActivo = false, filaSeleccionada = null;
+
+// === Init: Manejo de eventos al cargar la página ===
 document.addEventListener("DOMContentLoaded", () => {
+  const { columnas, camposRequeridos } = configuracionEntidad[entidadActiva];
+
+  // Cargar primera página
+  obtenerEntidadesPaginadas(1, entidadActiva, columnas);
+
+  // Botones globales
   document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
   document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
-  obtenerProductosPaginados(1);
 
+  // Botón recargar
+  document.getElementById("btn-recargar").addEventListener("click", () => {
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
+  });
+
+  // Filtro: Mostrar/ocultar inputs según columna seleccionada
   const combobox = document.getElementById("filtro-columna");
   const inputFiltro = document.getElementById("valor-filtro");
   const filtroFechas = document.getElementById("filtro-fechas");
-  const btnRecargar = document.getElementById("btn-recargar");
-
-  btnRecargar.addEventListener("click", () => {
-    obtenerProductosPaginados(paginaActual); // o los parámetros reales que tu función requiera
-  });
 
   combobox.addEventListener("change", () => {
     const columnaSeleccionada = combobox.value;
-
-    if (columnaSeleccionada === "FECHA_INGRESO") {
+    if (columnaSeleccionada.toUpperCase().includes("FECHA")) {
       filtroFechas.style.display = "inline";
       inputFiltro.style.display = "none";
     } else {
@@ -31,23 +50,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // Botón aplicar filtro
   document.getElementById("btn-buscar-filtro").addEventListener("click", () => {
-    const columnaSeleccionada = document.getElementById("filtro-columna").value;
+    const columnaSeleccionada = combobox.value;
     let valorFiltro = "";
 
-    if (columnaSeleccionada === "FECHA_INGRESO") {
+    if (columnaSeleccionada.toUpperCase().includes("FECHA")) {
       const fechaInicio = document.getElementById("fecha-inicio").value;
       const fechaFin = document.getElementById("fecha-fin").value;
-
       if (!fechaInicio || !fechaFin) {
         alert("Debes seleccionar ambas fechas.");
         return;
       }
-
-      // En este ejemplo solo soportamos un valor, así que usa solo una fecha
-      valorFiltro = `${fechaInicio}|${fechaFin}`; // Enviar rango como string separado por |
+      valorFiltro = `${fechaInicio}|${fechaFin}`;
     } else {
-      valorFiltro = document.getElementById("valor-filtro").value;
+      valorFiltro = inputFiltro.value.trim();
     }
 
     if (!valorFiltro) {
@@ -55,177 +72,53 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Guardamos globalmente los filtros
     filtroColumnaActual = columnaSeleccionada;
     filtroValorActual = valorFiltro;
 
-    // Cargar desde el backend con el filtro aplicado
-    obtenerProductosPaginados(1);
+    obtenerEntidadesPaginadas(1, entidadActiva, columnas);
   });
 
+  // Botón limpiar filtro
   document.getElementById("btn-limpiar-filtro").addEventListener("click", () => {
     document.getElementById("valor-filtro").value = "";
     document.getElementById("fecha-inicio").value = "";
     document.getElementById("fecha-fin").value = "";
     document.getElementById("mensaje-sin-resultados").style.display = "none";
 
-    // Resetear filtros globales
     filtroColumnaActual = null;
     filtroValorActual = null;
 
-    obtenerProductosPaginados(paginaActual); // Volver a ruta simple
-    actualizarContadorRegistros(datos.length, entidad); // ✅ Actualizar el contador
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   });
-
 });
 
-// === Configuración específica de "productos" ===
-const entidad = 'productos';
-const columnasProductos = [
-  'ID_PRODUCTO',
-  'NOMBRE_PRODUCTO',
-  'DESCRIPCION',
-  'PRECIO_UNITARIO',
-  'STOCK_ACTUAL',
-  'FECHA_INGRESO',
-  'ID_CATEGORIA'
-];
+// === Funciones Generales Reutilizables y Escalables ===
 
-// === Obtiene productos desde el backend ===
-async function obtenerProductosPaginados(pagina = 1) {
-  try {
-    let url = `/${entidad}/paginar?pagina=${pagina}&limite=${limite}`;
-
-    if (filtroColumnaActual && filtroValorActual) {
-      url += `&columna=${encodeURIComponent(filtroColumnaActual.toLowerCase())}&valor=${encodeURIComponent(filtroValorActual)}`;
-    }
-
-    const res = await fetch(url);
-    const json = await res.json();
-
-    datos = json.productos;
-    paginaActual = json.pagina;
-    paginasTotales = json.paginas;
-
-    renderizarTabla('tabla-productos', datos, columnasProductos, (tr, fila) => {
-      tr.addEventListener("click", () => {
-        if (modoEdicionActivo && !filaSeleccionada) activarEdicionEnFila(tr);
-      });
-    });
-
-    actualizarContadorRegistros(json.total, entidad);
-    renderizarPaginacion(paginaActual, paginasTotales);
-    console.log("URL generada para fetch:", url);
-  } catch (error) {
-    console.error(`Error al obtener ${entidad} paginados:`, error);
-    mostrarErrorContador(entidad);
-  }
-}
-
-// === Crear producto ===
-async function crearProducto() {
-  const id_producto = parseInt(document.getElementById('id_producto').value);
-  const nombre_producto = document.getElementById('nombre_producto').value;
-  const descripcion = document.getElementById('descripcion').value;
-  const precio_unitario = parseFloat(document.getElementById('precio_unitario').value);
-  const stock_actual = parseInt(document.getElementById('stock_actual').value);
-  const fecha_ingreso = document.getElementById('fecha_ingreso').value;
-  const id_categoria = parseInt(document.getElementById('id_categoria').value);
-
-  await fetch(`/${entidad}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      id_producto, nombre_producto, descripcion, precio_unitario,
-      stock_actual, fecha_ingreso, id_categoria
-    })
-  });
-
-  obtenerProductosPaginados(paginaActual);
-}
-
-// === Editar fila producto (solo para esta tabla por ahora) ===
-function activarEdicionEnFila(fila) {
-  filaSeleccionada = fila;
-  const celdas = fila.querySelectorAll("td");
-  const valores = Array.from(celdas).map(td => td.textContent);
-
-  fila.innerHTML = `
-    <td>${valores[0]}</td>
-    <td><input type="text" value="${valores[1]}" /></td>
-    <td><input type="text" value="${valores[2]}" /></td>
-    <td><input type="number" step="0.01" value="${valores[3]}" /></td>
-    <td><input type="number" value="${valores[4]}" /></td>
-    <td><input type="date" value="${valores[5]}" /></td>
-    <td><input type="number" value="${valores[6]}" /></td>
-    <td>
-      <button onclick="confirmarEdicion(${valores[0]})">✅</button>
-      <button onclick="cancelarModo()">❌</button>
-    </td>
-  `;
-}
-
-// === Confirmar edición producto ===
-async function confirmarEdicion(id) {
-  const inputs = filaSeleccionada.querySelectorAll("input");
-
-  const data = {
-    nombre_producto: inputs[0].value,
-    descripcion: inputs[1].value,
-    precio_unitario: parseFloat(inputs[2].value),
-    stock_actual: parseInt(inputs[3].value),
-    fecha_ingreso: inputs[4].value,
-    id_categoria: parseInt(inputs[5].value)
-  };
-
-  await fetch(`/${entidad}/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-
-  cancelarModo();
-  obtenerProductosPaginados(paginaActual);
-}
-
-// === Estado global del CRUD ===
-let modoEdicionActivo = false;
-let modoEliminacionActivo = false;
-let filaSeleccionada = null;
-
-// === Utilidad genérica: Renderizar tabla con manejo de valores null y números ===
+// 🔁 Renderiza una tabla para cualquier entidad
 function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => {}) {
   const tabla = document.getElementById(idTabla);
   tabla.innerHTML = '';
 
   data.forEach(fila => {
     const tr = document.createElement('tr');
-    tr.dataset.id = fila[columnas[0]]; // ID dinámico por si se cambia entidad
+    tr.dataset.id = fila[columnas[0].nombre];
 
-    // Agregar checkbox si está activo el modo eliminación múltiple
     if (modoEliminacionActivo) {
       const tdCheckbox = document.createElement('td');
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.classList.add('checkbox-eliminar');
-      checkbox.dataset.id = fila[columnas[0]];
+      checkbox.dataset.id = fila[columnas[0].nombre];
       tdCheckbox.appendChild(checkbox);
       tr.appendChild(tdCheckbox);
     }
 
     columnas.forEach(col => {
-      const valor = fila[col];
-      let contenido = '';
-      if (valor == null) {
-        contenido = '';
-      } else if (typeof valor === 'number') {
-        contenido = Number.isInteger(valor) ? valor : valor.toFixed(2);
-      } else {
-        contenido = valor;
-      }
-
+      const valor = fila[col.nombre];
       const td = document.createElement('td');
-      td.textContent = contenido;
+      td.textContent = (valor == null) ? '' : 
+                       (typeof valor === 'number') ? 
+                       (Number.isInteger(valor) ? valor : valor.toFixed(2)) : valor;
       tr.appendChild(td);
     });
 
@@ -233,306 +126,22 @@ function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => {}) {
     tabla.appendChild(tr);
   });
 
-  // Agregar encabezado de checkbox si está en modo eliminación
+  // Encabezado de checkbox si está en modo eliminación
+  const thead = document.querySelector("thead tr");
   if (modoEliminacionActivo) {
-    const thead = document.querySelector("thead tr");
     if (!thead.querySelector("th.checkbox-header")) {
       const th = document.createElement("th");
-      th.textContent = ""; // vacío para checkbox
+      th.textContent = "";
       th.classList.add("checkbox-header");
       thead.insertBefore(th, thead.firstChild);
     }
   } else {
-    // Limpiar columna de checkbox si ya no estamos en ese modo
     const thCheckbox = document.querySelector("th.checkbox-header");
     if (thCheckbox) thCheckbox.remove();
   }
 }
 
-// === Manejo de modos ===
-function mostrarBotonCancelarModo() {
-  const container = document.getElementById("boton-cancelar-modo-container");
-  container.innerHTML = `<button id="btn-cancelar-modo">❌ Cancelar modo</button>`;
-  document.getElementById("btn-cancelar-modo").addEventListener("click", cancelarModo);
-}
-
-function cancelarModo() {
-  modoEdicionActivo = false;
-  modoEliminacionActivo = false;
-  filaSeleccionada = null;
-  activarBotonesGlobales();
-
-  document.getElementById("btn-eliminar-global").style.display = "inline-block";
-
-  const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
-  if (btnConfirmar) {
-    btnConfirmar.style.display = "none";
-
-    // También elimina event listener anterior (opcional)
-    btnConfirmar.replaceWith(btnConfirmar.cloneNode(true));
-  }
-
-  document.getElementById("boton-cancelar-modo-container").innerHTML = '';
-  obtenerProductosPaginados(paginaActual);
-}
-
-
-function activarModoEdicion() {
-  if (modoEdicionActivo) return;
-  modoEdicionActivo = true;
-  desactivarBotonesGlobales();
-  mostrarBotonCancelarModo();
-  alert("Haz clic en una fila para editarla.");
-}
-
-function activarModoEliminacion() {
-  if (modoEliminacionActivo) return;
-  modoEliminacionActivo = true;
-  desactivarBotonesGlobales();
-  mostrarBotonCancelarModo();
-
-  const btnEliminarGlobal = document.getElementById("btn-eliminar-global");
-  btnEliminarGlobal.style.display = "none";
-
-  const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
-  btnConfirmar.style.display = "inline-block";
-
-  // Clonamos para eliminar event listeners previos
-  const nuevoBtnConfirmar = btnConfirmar.cloneNode(true);
-  btnConfirmar.replaceWith(nuevoBtnConfirmar);
-
-  // **Agregar listener al nuevo botón**
-  nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados);
-
-  obtenerProductosPaginados(paginaActual);
-}
-
-function desactivarBotonesGlobales() {
-  document.getElementById("btn-editar-global").disabled = true;
-  document.getElementById("btn-eliminar-global").disabled = true;
-}
-
-function activarBotonesGlobales() {
-  const btnEditar = document.getElementById("btn-editar-global");
-  if (btnEditar) btnEditar.disabled = false;
-
-  const btnEliminar = document.getElementById("btn-eliminar-global");
-  if (btnEliminar) btnEliminar.disabled = false;
-}
-
-// Campos requeridos por entidad
-const camposRequeridosPorEntidad = {
-  productos: ['ID_PRODUCTO', 'NOMBRE_PRODUCTO']
-};
-
-function abrirFormularioPopup() {
-  const form = document.getElementById('formulario-popup');
-  const titulo = document.getElementById('modal-titulo');
-  form.innerHTML = '';
-  titulo.textContent = `Agregar nuevo ${entidad.slice(0, -1)}`;
-
-  columnasProductos.forEach(col => {
-    const label = document.createElement('label');
-    label.textContent = col;
-
-    const input = document.createElement('input');
-
-    // Tipo de input según el nombre de columna
-    if (col.toLowerCase().includes('fecha')) {
-      input.type = 'date';
-    } else if (col.toLowerCase().includes('id') || col.toLowerCase().includes('stock') || col.toLowerCase().includes('precio')) {
-      input.type = 'number';
-      input.step = 'any';
-    } else {
-      input.type = 'text'; // Incluye descripción como texto plano
-    }
-
-    input.name = col;
-
-    // Campo requerido si está definido en config
-    if (camposRequeridosPorEntidad[entidad]?.includes(col)) {
-      input.required = true;
-    }
-
-    form.appendChild(label);
-    form.appendChild(input);
-  });
-
-  document.getElementById('modal-popup').classList.remove('hidden');
-}
-
-function cerrarFormularioPopup() {
-  document.getElementById('modal-popup').classList.add('hidden');
-
-  // Mostrar formulario y ocultar contenido dinámico
-  document.getElementById("formulario-popup").style.display = "block";
-  document.querySelector("#modal-popup .modal-content").style.display = "block";
-
-  document.getElementById("modal-contenido-dinamico").style.display = "none";
-  document.getElementById("modal-contenido-dinamico").innerHTML = "";
-}
-
-async function guardarDesdePopup() {
-  const form = document.getElementById('formulario-popup');
-
-  if (!form.reportValidity()) return; // Fuerza validación HTML5 y evita submit si hay errores
-
-  const inputs = form.querySelectorAll('input');
-  const body = {};
-
-  inputs.forEach(input => {
-    const value = input.value.trim();
-    if (input.type === 'number') {
-      body[formatearClave(input.name)] = value ? parseFloat(value) : null;
-    } else {
-      body[formatearClave(input.name)] = value || null;
-    }
-  });
-
-  await fetch(`/${entidad}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
-
-  cerrarFormularioPopup();
-  obtenerProductosPaginados(paginaActual);
-}
-
-function formatearClave(clave) {
-  return clave.toLowerCase();
-}
-
-function actualizarContadorRegistros(cantidad, nombreEntidad) {
-  const contenedor = document.getElementById("contador-registros");
-  contenedor.textContent = `📦${cantidad} ${nombreEntidad}`;
-}
-
-function mostrarErrorContador(nombreEntidad) {
-  const contenedor = document.getElementById("contador-registros");
-  contenedor.textContent = `⚠️ No se pudieron cargar los ${nombreEntidad}`;
-}
-
-async function confirmarEliminarSeleccionados() {
-  const checkboxes = document.querySelectorAll(".checkbox-eliminar:checked");
-  if (checkboxes.length === 0) {
-    alert("Debes seleccionar al menos un elemento para eliminar.");
-    return;
-  }
-
-  const ids = Array.from(checkboxes).map(cb => cb.dataset.id);
-
-  // Mostrar modal de confirmación en el contenedor dinámico
-  const contenido = ids.map(id => `<li>ID: ${id}</li>`).join('');
-  const modalContenido = `
-    <div class="modal-content">
-      <h2>Confirmar eliminación</h2>
-      <p>¿Estás seguro de eliminar los siguientes ${entidad}?</p>
-      <ul>${contenido}</ul>
-      <div class="modal-buttons">
-        <button id="btn-eliminar-confirmar-final">✅ Confirmar</button>
-        <button onclick="cerrarFormularioPopup()">❌ Cancelar</button>
-      </div>
-    </div>
-  `;
-  
-  // Ocultar el formulario popup y mostrar el contenido dinámico
-  document.getElementById("formulario-popup").style.display = "none";
-  document.querySelector("#modal-popup .modal-content").style.display = "none";
-
-  const contenedorDinamico = document.getElementById("modal-contenido-dinamico");
-  contenedorDinamico.innerHTML = modalContenido;
-  contenedorDinamico.style.display = "block";
-
-  document.getElementById("modal-popup").classList.remove("hidden");
-
-  document.getElementById("btn-eliminar-confirmar-final").onclick = async () => {
-    await eliminarLote(ids);
-  };
-}
-
-async function eliminarLote(ids) {
-  const errores = [];
-
-  for (const id of ids) {
-    try {
-      const res = await fetch(`/${entidad}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(`Falló el ID ${id}`);
-    } catch (error) {
-      errores.push(`❌ ID ${id}: ${error.message}`);
-    }
-  }
-
-  cerrarFormularioPopup();
-  if (errores.length > 0) {
-    alert("Algunas eliminaciones fallaron:\n" + errores.join('\n'));
-  }
-
-  cancelarModo();
-  obtenerProductosPaginados(paginaActual);
-}
-
-function aplicarFiltro(tablaId, datosOriginales, columna, valorFiltro) {
-  let datosFiltrados = [];
-
-  const tipoColumna = obtenerTipoColumna(datosOriginales, columna);
-
-  if (tipoColumna === 'fecha') {
-    const [fechaInicio, fechaFin] = valorFiltro.split(' al ').map(fecha => new Date(fecha.trim()));
-    datosFiltrados = datosOriginales.filter(item => {
-      const fechaItem = new Date(item[columna]);
-      return fechaItem >= fechaInicio && fechaItem <= fechaFin;
-    });
-  } else if (tipoColumna === 'número') {
-      const valorNumerico = Number(valorFiltro);
-      if (isNaN(valorNumerico)) {
-        alert("Por favor ingresa un valor numérico válido.");
-        return;
-      }
-
-      datosFiltrados = datosOriginales.filter(item => {
-        const valorItem = Number(item[columna]);
-        return !isNaN(valorItem) && Math.abs(valorItem - valorNumerico) < 0.001;
-      });
-  } else { // texto
-    datosFiltrados = datosOriginales.filter(item => {
-      const valor = item[columna];
-      return valor && valor.toString().toLowerCase().includes(valorFiltro.toLowerCase());
-    });
-  }
-
-  const mensaje = document.getElementById("mensaje-sin-resultados");
-
-  if (datosFiltrados.length > 0) {
-    renderizarTabla(tablaId, datosFiltrados, columnasProductos);
-    mensaje.style.display = "none";
-    actualizarContadorRegistros(datosFiltrados.length, entidad);
-  } else {
-    // No coincidencias
-    document.getElementById(tablaId).innerHTML = "";
-    mensaje.style.display = "block";
-    actualizarContadorRegistros(0, entidad);
-  }
-}
-
-function obtenerTipoColumna(datos, columna) {
-  const ejemplo = datos.find(item => item[columna] != null);
-  if (!ejemplo) return 'texto';
-
-  const valor = ejemplo[columna];
-
-  // Si ya es número (realmente un tipo número)
-  if (typeof valor === "number") return 'número';
-
-  // Si parece número como string
-  if (!isNaN(valor) && valor.trim() !== "") return 'número';
-
-  // Si parece fecha en formato ISO (yyyy-mm-dd)
-  if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'fecha';
-
-  return 'texto';
-}
-
+// 📄 Paginación universal para cualquier entidad
 function renderizarPaginacion(pagina, totalPaginas) {
   const contenedor = document.getElementById("paginacion");
   contenedor.innerHTML = "";
@@ -543,7 +152,10 @@ function renderizarPaginacion(pagina, totalPaginas) {
     const btn = document.createElement("button");
     btn.textContent = texto;
     btn.disabled = deshabilitado;
-    btn.addEventListener("click", () => obtenerProductosPaginados(nuevaPagina));
+    btn.addEventListener("click", () => {
+      const columnas = configuracionEntidad[entidadActiva].columnas;
+      obtenerEntidadesPaginadas(nuevaPagina, entidadActiva, columnas);
+    });
     return btn;
   };
 
@@ -559,4 +171,393 @@ function renderizarPaginacion(pagina, totalPaginas) {
 
   contenedor.appendChild(crearBoton("Siguiente ▶", pagina + 1, pagina === totalPaginas));
   contenedor.appendChild(crearBoton("Última ⏭", totalPaginas, pagina === totalPaginas));
+}
+
+// 📊 Actualiza contador de registros
+function actualizarContadorRegistros(cantidad, entidad) {
+  const contenedor = document.getElementById("contador-registros");
+  contenedor.textContent = `📦 ${cantidad} ${entidad}`;
+}
+
+// ⚠️ Mostrar error si no se pueden cargar datos
+function mostrarErrorContador(entidad) {
+  const contenedor = document.getElementById("contador-registros");
+  contenedor.textContent = `⚠️ No se pudieron cargar los ${entidad}`;
+}
+
+// 🧹 Limpieza de claves (por ejemplo: columnas en minúsculas)
+function formatearClave(clave) {
+  return clave.toLowerCase();
+}
+
+// === CRUD Genérico Escalable ===
+
+// 📥 Leer registros paginados desde el backend para cualquier entidad
+async function obtenerEntidadesPaginadas(pagina = 1, entidad = entidadActiva, columnas = configuracionEntidad[entidad].columnas) {
+  try {
+    let url = `/${entidad}/paginar?pagina=${pagina}&limite=${limite}`;
+
+    if (filtroColumnaActual && filtroValorActual) {
+      url += `&columna=${encodeURIComponent(filtroColumnaActual.toLowerCase())}&valor=${encodeURIComponent(filtroValorActual)}`;
+    }
+
+    const res = await fetch(url);
+    const json = await res.json();
+
+    datos = json[entidad]; // Asume que backend responde con { productos: [...], pagina, paginas, total }
+    paginaActual = json.pagina;
+    paginasTotales = json.paginas;
+
+    renderizarTabla('tabla-' + entidad, datos, columnas, (tr, fila) => {
+      tr.addEventListener("click", () => {
+        if (modoEdicionActivo && !filaSeleccionada) activarEdicionEnFila(tr, entidad);
+      });
+    });
+
+    actualizarContadorRegistros(json.total, entidad);
+    renderizarPaginacion(paginaActual, paginasTotales);
+
+    console.log("✅ URL generada para fetch:", url);
+  } catch (error) {
+    console.error(`❌ Error al obtener ${entidad} paginados:`, error);
+    mostrarErrorContador(entidad);
+  }
+}
+
+// 🆕 Crear entidad desde formulario emergente
+async function crearEntidadDesdeFormulario() {
+  const form = document.getElementById('formulario-popup');
+  if (!form.reportValidity()) return;
+
+  const inputs = form.querySelectorAll('input');
+  const body = {};
+
+  inputs.forEach(input => {
+    const valor = input.value.trim();
+    if (input.type === 'number') {
+      body[formatearClave(input.name)] = valor ? parseFloat(valor) : null;
+    } else {
+      body[formatearClave(input.name)] = valor || null;
+    }
+  });
+
+  await fetch(`/${entidadActiva}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  cerrarFormularioPopup();
+  obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+}
+
+// ✏️ Confirmar edición genérica para entidad activa
+async function confirmarEdicion(id) {
+  const inputs = filaSeleccionada.querySelectorAll("input");
+  const columnas = configuracionEntidad[entidadActiva].columnas.slice(1); // Omitimos el ID
+
+  const body = {};
+  columnas.forEach((col, i) => {
+    const input = inputs[i];
+    if (!input) return;
+
+    const valor = input.value.trim();
+    body[formatearClave(col.nombre)] = (input.type === 'number') ? parseFloat(valor) : valor;
+  });
+
+  await fetch(`/${entidadActiva}/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+
+  cancelarModo();
+  obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+}
+
+// 🗑️ Eliminar lote genérico
+async function eliminarLote(ids) {
+  const errores = [];
+
+  for (const id of ids) {
+    try {
+      const res = await fetch(`/${entidadActiva}/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Falló el ID ${id}`);
+    } catch (error) {
+      errores.push(`❌ ID ${id}: ${error.message}`);
+    }
+  }
+
+  cerrarFormularioPopup();
+
+  if (errores.length > 0) {
+    alert("Algunas eliminaciones fallaron:\n" + errores.join('\n'));
+  }
+
+  cancelarModo();
+  obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+}
+
+// === Modo Edición / Eliminación Escalable ===
+
+// 🔁 Activar modo edición (solo una fila a la vez)
+function activarModoEdicion() {
+  if (modoEdicionActivo) return;
+
+  modoEdicionActivo = true;
+  desactivarBotonesGlobales();
+  mostrarBotonCancelarModo();
+
+  alert(`Haz clic en una fila para editar un ${entidadActiva.slice(0, -1)}.`);
+}
+
+// 🗑️ Activar modo eliminación (checkbox por fila)
+function activarModoEliminacion() {
+  if (modoEliminacionActivo) return;
+
+  modoEliminacionActivo = true;
+  desactivarBotonesGlobales();
+  mostrarBotonCancelarModo();
+
+  const btnEliminarGlobal = document.getElementById("btn-eliminar-global");
+  btnEliminarGlobal.style.display = "none";
+
+  const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
+  btnConfirmar.style.display = "inline-block";
+
+  // Clonamos para eliminar event listeners previos
+  const nuevoBtnConfirmar = btnConfirmar.cloneNode(true);
+  btnConfirmar.replaceWith(nuevoBtnConfirmar);
+
+  nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados);
+
+  obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+}
+
+// 🚫 Cancelar cualquier modo activo
+function cancelarModo() {
+  modoEdicionActivo = false;
+  modoEliminacionActivo = false;
+  filaSeleccionada = null;
+  activarBotonesGlobales();
+
+  const btnEliminar = document.getElementById("btn-eliminar-global");
+  if (btnEliminar) btnEliminar.style.display = "inline-block";
+
+  const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
+  if (btnConfirmar) {
+    btnConfirmar.style.display = "none";
+    btnConfirmar.replaceWith(btnConfirmar.cloneNode(true)); // Limpia listeners
+  }
+
+  document.getElementById("boton-cancelar-modo-container").innerHTML = '';
+
+  obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+}
+
+// 🛠️ Utilidades de botón global
+function mostrarBotonCancelarModo() {
+  const container = document.getElementById("boton-cancelar-modo-container");
+  container.innerHTML = `<button id="btn-cancelar-modo">❌ Cancelar modo</button>`;
+  document.getElementById("btn-cancelar-modo").addEventListener("click", cancelarModo);
+}
+
+function desactivarBotonesGlobales() {
+  document.getElementById("btn-editar-global").disabled = true;
+  document.getElementById("btn-eliminar-global").disabled = true;
+}
+
+function activarBotonesGlobales() {
+  const btnEditar = document.getElementById("btn-editar-global");
+  const btnEliminar = document.getElementById("btn-eliminar-global");
+
+  if (btnEditar) btnEditar.disabled = false;
+  if (btnEliminar) btnEliminar.disabled = false;
+}
+
+// === Filtros Genéricos ===
+
+// Variables globales de filtro
+
+// ✅ Aplicar filtro local o remoto
+function aplicarFiltro(datosOriginales, columna, valorFiltro) {
+  const tipoColumna = obtenerTipoColumna(datosOriginales, columna);
+  let datosFiltrados = [];
+
+  if (tipoColumna === 'fecha') {
+    const [inicio, fin] = valorFiltro.split('|');
+    const fechaInicio = new Date(inicio);
+    const fechaFin = new Date(fin);
+
+    datosFiltrados = datosOriginales.filter(item => {
+      const fechaItem = new Date(item[columna]);
+      return fechaItem >= fechaInicio && fechaItem <= fechaFin;
+    });
+
+  } else if (tipoColumna === 'número') {
+    const valorNumerico = Number(valorFiltro);
+    if (isNaN(valorNumerico)) {
+      alert("Por favor ingresa un número válido.");
+      return;
+    }
+
+    datosFiltrados = datosOriginales.filter(item => {
+      const valorItem = Number(item[columna]);
+      return !isNaN(valorItem) && Math.abs(valorItem - valorNumerico) < 0.001;
+    });
+
+  } else {
+    datosFiltrados = datosOriginales.filter(item => {
+      const valorItem = item[columna];
+      return valorItem && valorItem.toString().toLowerCase().includes(valorFiltro.toLowerCase());
+    });
+  }
+
+  const mensaje = document.getElementById("mensaje-sin-resultados");
+  const tablaId = `tabla-${entidadActiva}`;
+
+  if (datosFiltrados.length > 0) {
+    renderizarTabla(tablaId, datosFiltrados, configuracionEntidad[entidadActiva].columnas);
+    mensaje.style.display = "none";
+    actualizarContadorRegistros(datosFiltrados.length, entidadActiva);
+  } else {
+    document.getElementById(tablaId).innerHTML = "";
+    mensaje.style.display = "block";
+    actualizarContadorRegistros(0, entidadActiva);
+  }
+}
+
+// ✅ Inferir tipo de dato según muestra representativa
+function obtenerTipoColumna(datos, columna) {
+  const muestra = datos.find(item => item[columna] != null);
+  if (!muestra) return 'texto';
+
+  const valor = muestra[columna];
+
+  if (typeof valor === "number") return 'número';
+
+  if (typeof valor === "string") {
+    if (!isNaN(valor) && valor.trim() !== "") return 'número';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'fecha'; // ISO-like
+  }
+
+  return 'texto';
+}
+
+// === Modal genérico para cualquier entidad ===
+
+function abrirFormularioPopup() {
+  const form = document.getElementById('formulario-popup');
+  const titulo = document.getElementById('modal-titulo');
+  form.innerHTML = '';
+
+  const config = configuracionEntidad[entidadActiva];
+  titulo.textContent = `Agregar nuevo ${entidadActiva.slice(0, -1)}`;
+
+  config.columnas.forEach(col => {
+    const label = document.createElement('label');
+    label.textContent = col.nombre;
+
+    const input = document.createElement('input');
+
+    // Estimar tipo de campo
+    if (col.nombre.toLowerCase().includes('fecha')) {
+      input.type = 'date';
+    } else if (col.nombre.toLowerCase().includes('id') || col.nombre.toLowerCase().includes('stock') || col.nombre.toLowerCase().includes('precio')) {
+      input.type = 'number';
+      input.step = 'any';
+    } else {
+      input.type = 'text';
+    }
+
+    input.name = col.nombre;
+
+    // Campo requerido según config
+    if (config.camposRequeridos.includes(col.nombre)) {
+      input.required = true;
+    }
+
+    form.appendChild(label);
+    form.appendChild(input);
+  });
+
+  document.getElementById('modal-popup').classList.remove('hidden');
+}
+
+function cerrarFormularioPopup() {
+  document.getElementById('modal-popup').classList.add('hidden');
+
+  // Restaurar visibilidad de contenido del modal
+  const formulario = document.getElementById("formulario-popup");
+  formulario.style.display = "block";
+  formulario.innerHTML = "";
+
+  const contenidoModal = document.querySelector("#modal-popup .modal-content");
+  contenidoModal.style.display = "block";
+
+  const contenidoDinamico = document.getElementById("modal-contenido-dinamico");
+  contenidoDinamico.innerHTML = "";
+  contenidoDinamico.style.display = "none";
+}
+
+function activarEdicionEnFila(tr, entidad) {
+  if (filaSeleccionada) return;
+
+  filaSeleccionada = tr;
+
+  const columnas = configuracionEntidad[entidad].columnas;
+
+  for (let i = 1; i < columnas.length; i++) { // omitimos ID
+    const colConfig = columnas[i];
+    const td = tr.children[modoEliminacionActivo ? i + 1 : i];
+    const valor = td.textContent;
+
+    let tipoInput;
+    switch (colConfig.tipo) {
+      case 'fecha':
+        tipoInput = 'date';
+        break;
+      case 'numero':
+        tipoInput = 'number';
+        break;
+      default:
+        tipoInput = 'text';
+    }
+
+    const input = document.createElement('input');
+    input.type = tipoInput;
+    input.value = valor;
+    td.textContent = '';
+    td.appendChild(input);
+  }
+
+  mostrarBotonesEdicion(tr.dataset.id);
+}
+
+function mostrarBotonesEdicion(id) {
+  const container = document.getElementById('boton-cancelar-modo-container');
+  container.innerHTML = `
+    <button id="btn-confirmar-edicion">✔ Confirmar</button>
+    <button id="btn-cancelar-edicion">❌ Cancelar</button>
+  `;
+
+  document.getElementById('btn-confirmar-edicion').onclick = () => confirmarEdicion(id);
+  document.getElementById('btn-cancelar-edicion').onclick = () => {
+    filaSeleccionada = null;
+    cancelarModo();
+  };
+}
+
+function confirmarEliminarSeleccionados() {
+  const checkboxes = document.querySelectorAll('.checkbox-eliminar:checked');
+  if (checkboxes.length === 0) {
+    alert("Selecciona al menos un registro para eliminar.");
+    return;
+  }
+
+  const confirmacion = confirm(`¿Estás seguro de que deseas eliminar ${checkboxes.length} registros? Esta acción no se puede deshacer.`);
+  if (!confirmacion) return;
+
+  const idsAEliminar = Array.from(checkboxes).map(cb => cb.dataset.id);
+  eliminarLote(idsAEliminar);
 }

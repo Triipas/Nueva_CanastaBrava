@@ -27,8 +27,29 @@ async function eliminar(req, res) {
   res.send({ mensaje: 'Producto eliminado' });
 }
 
+async function listarPaginado(req, res) {
+  try {
+    const pagina = parseInt(req.query.pagina) || 1;
+    const limite = parseInt(req.query.limite) || 10;
+
+    const resultado = await productosModel.obtenerProductosPaginados(pagina, limite);
+
+    res.json({
+      productos: resultado.datos,
+      total: resultado.total,
+      pagina,
+      limite,
+      paginas: Math.ceil(resultado.total / limite)
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: 'Error al paginar productos' });
+  }
+}
+
 module.exports = {
   listar,
+  listarPaginado,
   crear,
   actualizar,
   eliminar,

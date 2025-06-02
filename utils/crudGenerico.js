@@ -7,6 +7,31 @@ async function getAll(tabla, campos = '*') {
   return result.rows;
 }
 
+async function getPaginado(tabla, campos = '*', pagina = 1, limite = 10) {
+  // Asegurar que sean números enteros
+  pagina = Number(pagina);
+  limite = Number(limite);
+  const offset = (pagina - 1) * limite;
+
+  const sqlData = `
+    SELECT ${campos} FROM ${tabla}
+    ORDER BY 1
+    OFFSET :offset ROWS FETCH NEXT :limite ROWS ONLY
+  `;
+
+  const sqlCount = `SELECT COUNT(*) AS total FROM ${tabla}`;
+
+  const [data, count] = await Promise.all([
+    ejecutar(sqlData, { offset, limite }),
+    ejecutar(sqlCount)
+  ]);
+
+  return {
+    datos: data.rows,
+    total: count.rows[0].TOTAL
+  };
+}
+
 async function insert(tabla, columnas, valores) {
   const placeholders = columnas.map((_, i) => `:${i + 1}`).join(', ');
   const sql = `INSERT INTO ${tabla} (${columnas.join(', ')}) VALUES (${placeholders})`;
@@ -24,4 +49,4 @@ async function remove(tabla, campoId, id) {
   await ejecutar(sql, [id]);
 }
 
-module.exports = { getAll, insert, update, remove };
+module.exports = { getAll, insert, update, remove, getPaginado };

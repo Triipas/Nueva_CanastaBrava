@@ -1,5 +1,5 @@
 // models/productosModel.js
-const { getAll, insert, update, remove } = require('../utils/crudGenerico');
+const { getAll, insert, update, remove, getPaginado } = require('../utils/crudGenerico');
 
 const tabla = 'productos';
 
@@ -10,6 +10,15 @@ async function obtenerProductos() {
     id_categoria
   `;
   return await getAll(tabla, campos);
+}
+
+async function obtenerProductosPaginados(pagina = 1, limite = 10) {
+  const campos = `
+    id_producto, nombre_producto, TO_CHAR(descripcion) AS descripcion,
+    precio_unitario, stock_actual, TO_CHAR(fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
+    id_categoria
+  `;
+  return await getPaginado(tabla, campos, pagina, limite, 'id_producto');
 }
 
 async function crearProducto(data) {
@@ -57,9 +66,12 @@ async function eliminarProducto(id) {
   await remove(tabla, 'id_producto', id);
 }
 
+
 module.exports = {
   obtenerProductos,
+  obtenerProductosPaginados,
   crearProducto,
   actualizarProducto,
   eliminarProducto,
 };
+

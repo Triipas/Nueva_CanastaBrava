@@ -1,7 +1,58 @@
+let datos = [];
+
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
   document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
   obtenerDatos();
+
+  const combobox = document.getElementById("filtro-columna");
+  const inputFiltro = document.getElementById("valor-filtro");
+  const filtroFechas = document.getElementById("filtro-fechas");
+
+  combobox.addEventListener("change", () => {
+    const columnaSeleccionada = combobox.value;
+
+    if (columnaSeleccionada === "FECHA_INGRESO") {
+      filtroFechas.style.display = "inline";
+      inputFiltro.style.display = "none";
+    } else {
+      filtroFechas.style.display = "none";
+      inputFiltro.style.display = "inline";
+    }
+  });
+
+  document.getElementById("btn-buscar-filtro").addEventListener("click", () => {
+    const columnaSeleccionada = document.getElementById("filtro-columna").value;
+
+    let valorFiltro = "";
+    if (columnaSeleccionada === "FECHA_INGRESO") {
+      const fechaInicio = document.getElementById("fecha-inicio").value;
+      const fechaFin = document.getElementById("fecha-fin").value;
+
+      if (!fechaInicio || !fechaFin) {
+        alert("Debes seleccionar ambas fechas.");
+        return;
+      }
+
+      valorFiltro = `${fechaInicio} al ${fechaFin}`;
+    } else {
+      valorFiltro = document.getElementById("valor-filtro").value;
+    }
+
+    console.log(`Filtrando por: ${columnaSeleccionada} = ${valorFiltro}`);
+    aplicarFiltro('tabla-productos', datos, columnaSeleccionada, valorFiltro);
+  });
+
+  document.getElementById("btn-limpiar-filtro").addEventListener("click", () => {
+    document.getElementById("valor-filtro").value = "";
+    document.getElementById("fecha-inicio").value = "";
+    document.getElementById("fecha-fin").value = "";
+    document.getElementById("mensaje-sin-resultados").style.display = "none";
+
+    renderizarTabla("tabla-productos", datos, columnasProductos); // Mostrar todos de nuevo
+    actualizarContadorRegistros(datos.length, entidad); // ✅ Actualizar el contador
+  });
+
 });
 
 // === Configuración específica de "productos" ===
@@ -20,7 +71,7 @@ const columnasProductos = [
 async function obtenerDatos() {
   try {
     const res = await fetch(`/${entidad}`);
-    const datos = await res.json();
+    datos = await res.json(); // sin const
 
     renderizarTabla('tabla-productos', datos, columnasProductos, (tr, fila) => {
       tr.addEventListener("click", () => {
@@ -317,7 +368,7 @@ function formatearClave(clave) {
 
 function actualizarContadorRegistros(cantidad, nombreEntidad) {
   const contenedor = document.getElementById("contador-registros");
-  contenedor.textContent = `📦 Mostrando ${cantidad} ${nombreEntidad}`;
+  contenedor.textContent = `📦${cantidad} ${nombreEntidad}`;
 }
 
 function mostrarErrorContador(nombreEntidad) {
@@ -381,4 +432,65 @@ async function eliminarLote(ids) {
   }
 
   cancelarModo(); // Recargar y salir del modo
+}
+
+function aplicarFiltro(tablaId, datosOriginales, columna, valorFiltro) {
+  let datosFiltrados = [];
+
+  const tipoColumna = obtenerTipoColumna(datosOriginales, columna);
+
+  if (tipoColumna === 'fecha') {
+    const [fechaInicio, fechaFin] = valorFiltro.split(' al ').map(fecha => new Date(fecha.trim()));
+    datosFiltrados = datosOriginales.filter(item => {
+      const fechaItem = new Date(item[columna]);
+      return fechaItem >= fechaInicio && fechaItem <= fechaFin;
+    });
+  } else if (tipoColumna === 'número') {
+      const valorNumerico = Number(valorFiltro);
+      if (isNaN(valorNumerico)) {
+        alert("Por favor ingresa un valor numérico válido.");
+        return;
+      }
+
+      datosFiltrados = datosOriginales.filter(item => {
+        const valorItem = Number(item[columna]);
+        return !isNaN(valorItem) && Math.abs(valorItem - valorNumerico) < 0.001;
+      });
+  } else { // texto
+    datosFiltrados = datosOriginales.filter(item => {
+      const valor = item[columna];
+      return valor && valor.toString().toLowerCase().includes(valorFiltro.toLowerCase());
+    });
+  }
+
+  const mensaje = document.getElementById("mensaje-sin-resultados");
+
+  if (datosFiltrados.length > 0) {
+    renderizarTabla(tablaId, datosFiltrados, columnasProductos);
+    mensaje.style.display = "none";
+    actualizarContadorRegistros(datosFiltrados.length, entidad);
+  } else {
+    // No coincidencias
+    document.getElementById(tablaId).innerHTML = "";
+    mensaje.style.display = "block";
+    actualizarContadorRegistros(0, entidad);
+  }
+}
+
+function obtenerTipoColumna(datos, columna) {
+  const ejemplo = datos.find(item => item[columna] != null);
+  if (!ejemplo) return 'texto';
+
+  const valor = ejemplo[columna];
+
+  // Si ya es número (realmente un tipo número)
+  if (typeof valor === "number") return 'número';
+
+  // Si parece número como string
+  if (!isNaN(valor) && valor.trim() !== "") return 'número';
+
+  // Si parece fecha en formato ISO (yyyy-mm-dd)
+  if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'fecha';
+
+  return 'texto';
 }

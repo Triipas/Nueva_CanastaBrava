@@ -33,3 +33,59 @@
   display: flex;
   justify-content: space-between;
 }
+
+/* Hace que el contenido tenga margen lateral */
+body {
+  margin: 0;
+  padding: 20px;
+  box-sizing: border-box;
+  font-family: sans-serif;
+  background-color: #f9f9f9;
+}
+
+/* Estilo general para la tabla */
+table {
+  width: 100%;
+  border-collapse: collapse; /* Esto quita los cuadros dobles */
+  margin-top: 20px;
+  background-color: white;
+  box-shadow: 0 0 5px rgba(0,0,0,0.1); /* sombra ligera opcional */
+}
+
+/* Estilo para encabezado y celdas */
+th, td {
+    border: 1px solid #ccc; /* borde simple */
+    padding: 7px;
+    text-align: center;
+}
+
+/* Encabezado más destacado */
+thead {
+  background-color: #eee;
+}
+
+/* Alternancia de filas para mejor visual */
+tbody tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+/* Botones globales con algo de espaciado */
+#globales button {
+  margin-right: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+#globales {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+#globales button,
+#globales select,
+#globales input {
+  padding: 6px 10px;
+}

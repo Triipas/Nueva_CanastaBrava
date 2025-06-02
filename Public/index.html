@@ -9,16 +9,37 @@
 <body>
   <h1>CRUD Productos</h1>
 
-<!-- Botones globales encima de la tabla -->
-<div id="botones-globales">
+<div id="globales">
+  <!-- Filtro -->
+  <label for="filtro-columna">🔍 Filtrar por:</label>
+  <select id="filtro-columna">
+    <option value="NOMBRE_PRODUCTO">Nombre</option>
+    <option value="DESCRIPCION">Descripción</option>
+    <option value="PRECIO_UNITARIO">Precio</option>
+    <option value="STOCK_ACTUAL">Stock</option>
+    <option value="FECHA_INGRESO">Fecha de ingreso</option>
+    <option value="ID_CATEGORIA">ID Categoría</option>
+  </select>
+
+  <input type="text" id="valor-filtro" placeholder="Ingrese un valor..."/>
+  <span id="filtro-fechas" style="display:none">
+    De <input type="date" id="fecha-inicio">
+    a <input type="date" id="fecha-fin">
+  </span>
+  <button id="btn-buscar-filtro" type="button">🔍 Buscar</button>
+  <button id="btn-limpiar-filtro">❌ Limpiar</button>
+
+  <!-- Botones globales -->
   <button onclick="abrirFormularioPopup()">➕ Ingresar</button>
   <button onclick="obtenerDatos()">🔄 Recargar</button>
   <button id="btn-editar-global">✏️ Editar</button>
   <button id="btn-eliminar-global">🗑️ Eliminar</button>
   <button id="btn-confirmar-eliminacion" style="display:none;">🗑️ Eliminar productos</button>
-  <div id="boton-cancelar-modo-container" style="display: inline;"></div>
-  <span id="contador-registros" style="margin-left: 15px;"></span>
+  <div id="boton-cancelar-modo-container"></div>
+  <span id="contador-registros"></span>
 </div>
+
+
 <div id="modal-popup" class="modal hidden">
   <div class="modal-content">
     <h2 id="modal-titulo">Agregar nuevo</h2>
@@ -33,6 +54,8 @@
   <div id="modal-contenido-dinamico" style="display:none;"></div>
 </div>
 
+<p id="mensaje-sin-resultados" style="display:none; color: red;">⚠️ No se encontraron coincidencias.</p>
+
 <table border="1">
   <thead>
     <tr>
@@ -42,7 +65,7 @@
       <th>Precio</th>
       <th>Stock</th>
       <th>Fecha Ingreso</th>
-      <th>ID Categoría</th>
+      <th>Categoría</th>
     </tr>
   </thead>
   <tbody id="tabla-productos"></tbody>

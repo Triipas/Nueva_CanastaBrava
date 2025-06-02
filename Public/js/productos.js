@@ -1,13 +1,23 @@
 let datos = [];
+let paginaActual = 1;
+let filtroColumnaActual = null;
+let filtroValorActual = null;
+let paginasTotales = 1;
+let limite = 10;
 
 document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
   document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
-  obtenerDatos();
+  obtenerProductosPaginados(1);
 
   const combobox = document.getElementById("filtro-columna");
   const inputFiltro = document.getElementById("valor-filtro");
   const filtroFechas = document.getElementById("filtro-fechas");
+  const btnRecargar = document.getElementById("btn-recargar");
+
+  btnRecargar.addEventListener("click", () => {
+    obtenerProductosPaginados(paginaActual); // o los parámetros reales que tu función requiera
+  });
 
   combobox.addEventListener("change", () => {
     const columnaSeleccionada = combobox.value;
@@ -23,8 +33,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("btn-buscar-filtro").addEventListener("click", () => {
     const columnaSeleccionada = document.getElementById("filtro-columna").value;
-
     let valorFiltro = "";
+
     if (columnaSeleccionada === "FECHA_INGRESO") {
       const fechaInicio = document.getElementById("fecha-inicio").value;
       const fechaFin = document.getElementById("fecha-fin").value;
@@ -34,13 +44,23 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      valorFiltro = `${fechaInicio} al ${fechaFin}`;
+      // En este ejemplo solo soportamos un valor, así que usa solo una fecha
+      valorFiltro = `${fechaInicio}|${fechaFin}`; // Enviar rango como string separado por |
     } else {
       valorFiltro = document.getElementById("valor-filtro").value;
     }
 
-    console.log(`Filtrando por: ${columnaSeleccionada} = ${valorFiltro}`);
-    aplicarFiltro('tabla-productos', datos, columnaSeleccionada, valorFiltro);
+    if (!valorFiltro) {
+      alert("Debes ingresar un valor para filtrar.");
+      return;
+    }
+
+    // Guardamos globalmente los filtros
+    filtroColumnaActual = columnaSeleccionada;
+    filtroValorActual = valorFiltro;
+
+    // Cargar desde el backend con el filtro aplicado
+    obtenerProductosPaginados(1);
   });
 
   document.getElementById("btn-limpiar-filtro").addEventListener("click", () => {
@@ -49,7 +69,11 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("fecha-fin").value = "";
     document.getElementById("mensaje-sin-resultados").style.display = "none";
 
-    renderizarTabla("tabla-productos", datos, columnasProductos); // Mostrar todos de nuevo
+    // Resetear filtros globales
+    filtroColumnaActual = null;
+    filtroValorActual = null;
+
+    obtenerProductosPaginados(paginaActual); // Volver a ruta simple
     actualizarContadorRegistros(datos.length, entidad); // ✅ Actualizar el contador
   });
 
@@ -68,10 +92,20 @@ const columnasProductos = [
 ];
 
 // === Obtiene productos desde el backend ===
-async function obtenerDatos() {
+async function obtenerProductosPaginados(pagina = 1) {
   try {
-    const res = await fetch(`/${entidad}`);
-    datos = await res.json(); // sin const
+    let url = `/${entidad}/paginar?pagina=${pagina}&limite=${limite}`;
+
+    if (filtroColumnaActual && filtroValorActual) {
+      url += `&columna=${encodeURIComponent(filtroColumnaActual.toLowerCase())}&valor=${encodeURIComponent(filtroValorActual)}`;
+    }
+
+    const res = await fetch(url);
+    const json = await res.json();
+
+    datos = json.productos;
+    paginaActual = json.pagina;
+    paginasTotales = json.paginas;
 
     renderizarTabla('tabla-productos', datos, columnasProductos, (tr, fila) => {
       tr.addEventListener("click", () => {
@@ -79,9 +113,11 @@ async function obtenerDatos() {
       });
     });
 
-    actualizarContadorRegistros(datos.length, entidad);
+    actualizarContadorRegistros(json.total, entidad);
+    renderizarPaginacion(paginaActual, paginasTotales);
+    console.log("URL generada para fetch:", url);
   } catch (error) {
-    console.error(`Error al cargar ${entidad}:`, error);
+    console.error(`Error al obtener ${entidad} paginados:`, error);
     mostrarErrorContador(entidad);
   }
 }
@@ -105,7 +141,7 @@ async function crearProducto() {
     })
   });
 
-  obtenerDatos();
+  obtenerProductosPaginados(paginaActual);
 }
 
 // === Editar fila producto (solo para esta tabla por ahora) ===
@@ -149,6 +185,7 @@ async function confirmarEdicion(id) {
   });
 
   cancelarModo();
+  obtenerProductosPaginados(paginaActual);
 }
 
 // === Estado global del CRUD ===
@@ -236,7 +273,7 @@ function cancelarModo() {
   }
 
   document.getElementById("boton-cancelar-modo-container").innerHTML = '';
-  obtenerDatos();
+  obtenerProductosPaginados(paginaActual);
 }
 
 
@@ -267,7 +304,7 @@ function activarModoEliminacion() {
   // **Agregar listener al nuevo botón**
   nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados);
 
-  obtenerDatos(); // Para renderizar con checkboxes
+  obtenerProductosPaginados(paginaActual);
 }
 
 function desactivarBotonesGlobales() {
@@ -359,7 +396,7 @@ async function guardarDesdePopup() {
   });
 
   cerrarFormularioPopup();
-  obtenerDatos();
+  obtenerProductosPaginados(paginaActual);
 }
 
 function formatearClave(clave) {
@@ -431,7 +468,8 @@ async function eliminarLote(ids) {
     alert("Algunas eliminaciones fallaron:\n" + errores.join('\n'));
   }
 
-  cancelarModo(); // Recargar y salir del modo
+  cancelarModo();
+  obtenerProductosPaginados(paginaActual);
 }
 
 function aplicarFiltro(tablaId, datosOriginales, columna, valorFiltro) {
@@ -493,4 +531,32 @@ function obtenerTipoColumna(datos, columna) {
   if (typeof valor === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valor)) return 'fecha';
 
   return 'texto';
+}
+
+function renderizarPaginacion(pagina, totalPaginas) {
+  const contenedor = document.getElementById("paginacion");
+  contenedor.innerHTML = "";
+
+  if (totalPaginas <= 1) return;
+
+  const crearBoton = (texto, nuevaPagina, deshabilitado = false) => {
+    const btn = document.createElement("button");
+    btn.textContent = texto;
+    btn.disabled = deshabilitado;
+    btn.addEventListener("click", () => obtenerProductosPaginados(nuevaPagina));
+    return btn;
+  };
+
+  contenedor.appendChild(crearBoton("⏮ Primera", 1, pagina === 1));
+  contenedor.appendChild(crearBoton("◀ Anterior", pagina - 1, pagina === 1));
+
+  const rango = 2;
+  for (let i = Math.max(1, pagina - rango); i <= Math.min(totalPaginas, pagina + rango); i++) {
+    const btn = crearBoton(i, i);
+    if (i === pagina) btn.disabled = true;
+    contenedor.appendChild(btn);
+  }
+
+  contenedor.appendChild(crearBoton("Siguiente ▶", pagina + 1, pagina === totalPaginas));
+  contenedor.appendChild(crearBoton("Última ⏭", totalPaginas, pagina === totalPaginas));
 }

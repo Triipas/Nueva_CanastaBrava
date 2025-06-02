@@ -31,8 +31,21 @@ async function listarPaginado(req, res) {
   try {
     const pagina = parseInt(req.query.pagina) || 1;
     const limite = parseInt(req.query.limite) || 10;
+    const ordenarPor = req.query.ordenarPor || 'id_producto';
+    const orden = req.query.orden || 'ASC';
 
-    const resultado = await productosModel.obtenerProductosPaginados(pagina, limite);
+    const columna = req.query.columna;
+    const valor = req.query.valor;
+
+    let rango = null;
+
+    if (columna === 'fecha_ingreso' && valor?.includes('|')) {
+      rango = valor.split('|').map(f => f.trim());
+    }
+
+    const resultado = await productosModel.obtenerProductosPaginados(
+      pagina, limite, ordenarPor, orden, columna, valor, rango
+    );
 
     res.json({
       productos: resultado.datos,
@@ -42,7 +55,7 @@ async function listarPaginado(req, res) {
       paginas: Math.ceil(resultado.total / limite)
     });
   } catch (err) {
-    console.error(err);
+    console.error('Error al paginar productos:', err);
     res.status(500).send({ error: 'Error al paginar productos' });
   }
 }

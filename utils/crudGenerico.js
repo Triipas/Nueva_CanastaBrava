@@ -7,23 +7,28 @@ async function getAll(tabla, campos = '*') {
   return result.rows;
 }
 
-async function getPaginado(tabla, campos = '*', pagina = 1, limite = 10) {
-  // Asegurar que sean números enteros
+async function getPaginado(tabla, campos = '*', pagina = 1, limite = 10, ordenarPor = '1', orden = 'ASC', where = '', params = {}) {
   pagina = Number(pagina);
   limite = Number(limite);
   const offset = (pagina - 1) * limite;
 
+  const ordenSQL = (orden.toUpperCase() === 'DESC') ? 'DESC' : 'ASC';
+
   const sqlData = `
     SELECT ${campos} FROM ${tabla}
-    ORDER BY 1
+    ${where}
+    ORDER BY ${ordenarPor} ${ordenSQL}
     OFFSET :offset ROWS FETCH NEXT :limite ROWS ONLY
   `;
 
-  const sqlCount = `SELECT COUNT(*) AS total FROM ${tabla}`;
+  const sqlCount = `
+    SELECT COUNT(*) AS total FROM ${tabla}
+    ${where}
+  `;
 
   const [data, count] = await Promise.all([
-    ejecutar(sqlData, { offset, limite }),
-    ejecutar(sqlCount)
+    ejecutar(sqlData, { ...params, offset, limite }),
+    ejecutar(sqlCount, params)
   ]);
 
   return {

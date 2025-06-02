@@ -12,14 +12,41 @@ async function obtenerProductos() {
   return await getAll(tabla, campos);
 }
 
-async function obtenerProductosPaginados(pagina = 1, limite = 10) {
+async function obtenerProductosPaginados(pagina, limite, ordenarPor, orden, columna, valor, rango = null) {
   const campos = `
     id_producto, nombre_producto, TO_CHAR(descripcion) AS descripcion,
     precio_unitario, stock_actual, TO_CHAR(fecha_ingreso, 'YYYY-MM-DD') AS fecha_ingreso,
     id_categoria
   `;
-  return await getPaginado(tabla, campos, pagina, limite, 'id_producto');
+
+  let where = '';
+  const params = {};
+
+  const columnasValidas = [
+    'id_producto', 'nombre_producto', 'descripcion',
+    'precio_unitario', 'stock_actual', 'fecha_ingreso', 'id_categoria'
+  ];
+
+  if (columna && columnasValidas.includes(columna)) {
+    if (columna === 'fecha_ingreso' && rango && rango.length === 2) {
+      where = `WHERE ${columna} BETWEEN TO_DATE(:fechaInicio, 'YYYY-MM-DD') AND TO_DATE(:fechaFin, 'YYYY-MM-DD')`;
+      params.fechaInicio = rango[0];
+      params.fechaFin = rango[1];
+    } else if (columna === 'descripcion') {
+      where = `WHERE UPPER(TO_CHAR(${columna})) LIKE '%' || UPPER(:filtro) || '%'`;
+      params.filtro = valor;
+    } else if (['nombre_producto'].includes(columna)) {
+      where = `WHERE UPPER(${columna}) LIKE '%' || UPPER(:filtro) || '%'`;
+      params.filtro = valor;
+    } else {
+      where = `WHERE ${columna} = :filtro`;
+      params.filtro = valor;
+    }
+  }
+
+  return await getPaginado(tabla, campos, pagina, limite, ordenarPor, orden, where, params);
 }
+
 
 async function crearProducto(data) {
   const columnas = [

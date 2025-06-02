@@ -31,7 +31,7 @@
 
   <!-- Botones globales -->
   <button onclick="abrirFormularioPopup()">➕ Ingresar</button>
-  <button onclick="obtenerDatos()">🔄 Recargar</button>
+  <button id="btn-recargar">🔄 Recargar</button>
   <button id="btn-editar-global">✏️ Editar</button>
   <button id="btn-eliminar-global">🗑️ Eliminar</button>
   <button id="btn-confirmar-eliminacion" style="display:none;">🗑️ Eliminar productos</button>
@@ -70,6 +70,7 @@
   </thead>
   <tbody id="tabla-productos"></tbody>
 </table>
+<div id="paginacion" class="paginacion"></div>
 
 </body>
 </html>

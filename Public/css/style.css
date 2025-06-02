@@ -89,3 +89,12 @@ tbody tr:nth-child(even) {
 #globales input {
   padding: 6px 10px;
 }
+
+.paginacion {
+  margin-top: 1rem;
+  text-align: center;
+}
+.paginacion button {
+  margin: 0 2px;
+  padding: 5px 10px;
+}

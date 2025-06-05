@@ -204,7 +204,7 @@ async function obtenerEntidadesPaginadas(pagina = 1, entidad = entidadActiva, co
     const res = await fetch(url);
     const json = await res.json();
 
-    datos = json[entidad]; // Asume que backend responde con { productos: [...], pagina, paginas, total }
+    datos = json.datos || json[entidad] || []; // ← intenta en orden
     paginaActual = json.pagina;
     paginasTotales = json.paginas;
 
@@ -241,11 +241,27 @@ async function crearEntidadDesdeFormulario() {
     }
   });
 
-  await fetch(`/${entidadActiva}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
-  });
+  try {
+    const response = await fetch(`/${entidadActiva}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    // ¡IMPORTANTE! Verificar si la respuesta es exitosa
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('❌ Error del servidor:', errorData);
+      throw new Error(`Error ${response.status}: ${errorData.error || 'Error desconocido'}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ Creado exitosamente:', data);
+    
+  } catch (error) {
+    console.error('❌ Error completo:', error);
+    // Aquí puedes mostrar el error al usuario
+  }
 
   cerrarFormularioPopup();
   obtenerEntidadesPaginadas(paginaActual, entidadActiva);

@@ -2,21 +2,6 @@
 // 🧠 Configuración Global e Inicialización
 // ===================
 
-  const configuracionEntidad = {
-    productos: {
-      nombre: 'productos',
-      columnas: [
-        { nombre: 'ID_PRODUCTO', tipo: 'id' },
-        { nombre: 'NOMBRE_PRODUCTO', tipo: 'texto' },
-        { nombre: 'DESCRIPCION', tipo: 'texto' },
-        { nombre: 'PRECIO_UNITARIO', tipo: 'numero' },
-        { nombre: 'STOCK_ACTUAL', tipo: 'numero' },
-        { nombre: 'FECHA_INGRESO', tipo: 'fecha' },
-        { nombre: 'ID_CATEGORIA', tipo: 'id' }
-      ],
-      camposRequeridos: ['ID_PRODUCTO', 'NOMBRE_PRODUCTO']
-    }
-  };
   let configuracionTablas = {};
 
   let entidadActiva = 'productos';
@@ -32,15 +17,8 @@
     modoEliminacionActivo = false,
     filaSeleccionada = null;
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const { columnas, camposRequeridos } = configuracionEntidad[entidadActiva];
+document.addEventListener("DOMContentLoaded", inicializarAplicacion);
 
-    obtenerEntidadesPaginadas(1, entidadActiva, columnas);
-
-    ConfiguracionTablas();
-    configurarBotonesGlobales();
-    configurarFiltroBusqueda();
-  });
 
 // ===================
 // 🧩 Configuración de Interfaz (Botones, Filtros, Eventos UI)
@@ -50,7 +28,8 @@
     document.getElementById("btn-editar-global").addEventListener("click", activarModoEdicion);
     document.getElementById("btn-eliminar-global").addEventListener("click", activarModoEliminacion);
     document.getElementById("btn-recargar").addEventListener("click", () => {
-      obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+      const columnas = obtenerColumnasActivas();
+      obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
     });
   }
 
@@ -89,7 +68,8 @@
     filtroColumnaActual = columna;
     filtroValorActual = valorFiltro;
 
-    obtenerEntidadesPaginadas(1, entidadActiva);
+    const columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(1, entidadActiva,columnas);
   }
 
   function limpiarFiltroUI() {
@@ -100,8 +80,8 @@
 
     filtroColumnaActual = null;
     filtroValorActual = null;
-
-    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    const columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   }
 
 // ===================
@@ -121,7 +101,7 @@
     }
   }
 
-  async function obtenerEntidadesPaginadas(pagina = 1, entidad = entidadActiva, columnas = configuracionEntidad[entidad].columnas) {
+  async function obtenerEntidadesPaginadas(pagina = 1, entidad = entidadActiva, columnas = obtenerColumnasActivas()) {
     try {
       let url = `/${entidad}/paginar?pagina=${pagina}&limite=${limite}`; 
 
@@ -131,7 +111,10 @@
       const res = await fetch(url); 
       const json = await res.json(); 
 
-      datos = json.datos || json[entidad] || []; 
+      datos = json.datos || []; 
+      console.log("🔎 Datos recibidos:", datos);
+      console.log("🔍 Fila de ejemplo:", datos[0]);
+      console.log("🧩 Columnas esperadas:", columnas);
       paginaActual = json.pagina;
       paginasTotales = json.paginas; 
 
@@ -189,12 +172,13 @@
       console.error('❌ Error completo:', error);
     }
     cerrarFormularioPopup();
-    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    const columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   }
 
   async function confirmarEdicion(id) {
     const inputs = filaSeleccionada.querySelectorAll("input");
-    const columnas = configuracionEntidad[entidadActiva].columnas.slice(1);
+    let columnas = obtenerColumnasActivas().slice(1);
     const body = {};
 
     columnas.forEach((col, i) => {
@@ -210,7 +194,8 @@
       body: JSON.stringify(body)
     });
     cancelarModo();
-    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   }
 
   async function eliminarLote(ids) {
@@ -231,7 +216,8 @@
       alert("Algunas eliminaciones fallaron:\n" + errores.join('\n'));
     }
     cancelarModo();
-    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    const columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   }
 
 // ===================
@@ -241,9 +227,12 @@
   function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => { }) {
     const tabla = document.getElementById(idTabla);
     tabla.innerHTML = '';
+
+    const primaryKey = configuracionTablas[entidadActiva]?.primaryKey;
+    
     data.forEach(fila => {
       const tr = document.createElement('tr');
-      tr.dataset.id = fila[columnas[0].nombre];
+      tr.dataset.id = fila[primaryKey.toUpperCase()];
 
       if (modoEliminacionActivo) {
         const tdCheckbox = document.createElement('td');
@@ -252,21 +241,23 @@
         checkbox.type = 'checkbox';
         checkbox.classList.add('checkbox-eliminar');
 
-        checkbox.dataset.id = fila[columnas[0].nombre];
+        checkbox.dataset.id = fila[primaryKey.toUpperCase()];
         tdCheckbox.appendChild(checkbox);
         tr.appendChild(tdCheckbox);
       }
       columnas.forEach(col => {
-        const valor = fila[col.nombre];
+        const clave = col.nombre;
+        const valor = fila[clave] ?? fila[clave.toLowerCase()] ?? (() => {
+          console.warn(`⚠️ No se encontró valor para columna "${clave}". Fila:`, fila);
+          return '';
+        })();
         const td = document.createElement('td');
-
         td.textContent = (valor == null) ? '' :
-          (typeof valor === 'number') ?
-            (Number.isInteger(valor) ? valor : valor.toFixed(2)) :
-            valor;
-
+          (typeof valor === 'number') ? (Number.isInteger(valor) ? valor : valor.toFixed(2)) :
+          valor;
         tr.appendChild(td);
       });
+
 
       eventosPorFila(tr, fila);
       tabla.appendChild(tr);
@@ -297,7 +288,7 @@
       btn.disabled = deshabilitado;
 
       btn.addEventListener("click", () => {
-        const columnas = configuracionEntidad[entidadActiva].columnas;
+        const columnas = obtenerColumnasActivas();
         obtenerEntidadesPaginadas(nuevaPagina, entidadActiva, columnas);
       });
 
@@ -360,7 +351,8 @@
     btnConfirmar.replaceWith(nuevoBtnConfirmar);
     nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados);
     
-    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    const columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   }
 
   function cancelarModo() {
@@ -380,34 +372,42 @@
     }
 
     document.getElementById("boton-cancelar-modo-container").innerHTML = '';
-    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    const columnas = obtenerColumnasActivas();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva, columnas);
   }
 
   function activarEdicionEnFila(tr, entidad) {
     if (filaSeleccionada) return;
     filaSeleccionada = tr;
-    const columnas = configuracionEntidad[entidad].columnas;
+    const columnas = obtenerColumnasActivas();
+    const config = configuracionTablas[entidad]; // Agrega esta línea para acceder a campos reales
 
     for (let i = 1; i < columnas.length; i++) {
       const colConfig = columnas[i];
       const td = tr.children[modoEliminacionActivo ? i + 1 : i];
       const valor = td.textContent;
-      let tipoInput;
 
-      switch (colConfig.tipo) {
-        case 'fecha':
-          tipoInput = 'date'; break;
-        case 'numero':
-          tipoInput = 'number'; break;
+      const tipoOriginal = config.campos[colConfig.nombre.toLowerCase()]?.tipo || 'texto';
+
+      let tipoInput;
+      switch (tipoOriginal) {
+        case 'date':
+          tipoInput = 'date';
+          break;
+        case 'number':
+          tipoInput = 'number';
+          break;
         default:
           tipoInput = 'text';
       }
 
       const input = document.createElement('input');
-      input.type = tipoInput; input.value = valor;
+      input.type = tipoInput;
+      input.value = valor;
       td.textContent = '';
       td.appendChild(input);
     }
+
     mostrarBotonesEdicion(tr.dataset.id);
   }
 
@@ -545,3 +545,50 @@
       default: return 'texto';
     }
   }
+
+function obtenerColumnasDesdeConfig(config) {
+  if (!config || !config.campos) {
+    console.warn("⚠️ Configuración de columnas incompleta:", config);
+    return [];
+  }
+
+  if (config.camposOrden) {
+    return config.camposOrden.map(nombreCol => {
+      const meta = config.campos[nombreCol];
+      return { nombre: nombreCol.toUpperCase(), tipo: meta?.tipo || 'texto' };
+    });
+  }
+
+  return Object.entries(config.campos).map(([nombre, meta]) => ({
+    nombre: nombre.toUpperCase(),
+    tipo: meta.tipo || 'texto',
+  }));
+}
+
+async function inicializarAplicacion() {
+  await ConfiguracionTablas(); // <-- espera a que cargue
+
+  const config = configuracionTablas[entidadActiva];
+  if (!config) {
+    console.error(`No hay configuración para la entidad ${entidadActiva}`);
+    return;
+  }
+
+  const columnas = obtenerColumnasActivas();
+  const camposRequeridos = Object.entries(config.campos)
+    .filter(([_, meta]) => meta.requerido)
+    .map(([nombre]) => nombre.toUpperCase());
+
+  obtenerEntidadesPaginadas(1, entidadActiva, columnas);
+  configurarBotonesGlobales();
+  configurarFiltroBusqueda();
+}
+
+function obtenerColumnasActivas() {
+  const config = configuracionTablas[entidadActiva];
+  if (!config) {
+    console.warn("⚠️ No se puede obtener columnas: configuración no cargada.");
+    return [];
+  }
+  return obtenerColumnasDesdeConfig(config);
+}

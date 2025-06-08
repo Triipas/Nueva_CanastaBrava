@@ -26,7 +26,15 @@ const configuracionTablas = {
       stock_actual: { tipo: 'exact' },
       id_categoria: { tipo: 'exact' }
     },
-    camposOrden: ['id_producto', 'nombre_producto', 'precio_unitario', 'stock_actual', 'fecha_ingreso']
+    camposOrden: [
+      'id_producto',
+      'nombre_producto',
+      'descripcion',
+      'precio_unitario',
+      'stock_actual',
+      'fecha_ingreso',
+      'id_categoria'
+    ]
   },
 
 };

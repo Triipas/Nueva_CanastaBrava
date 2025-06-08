@@ -2,23 +2,18 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>CRUD Productos</title>
+  <title>CRUD</title>
   <link rel="stylesheet" href="/css/style.css">
-  <script defer src="/js/productos.js"></script>
+  <script defer src="/js/generadorHTML.js"></script>
+  <script defer src="/js/main.js"></script>
 </head>
 <body>
-  <h1>CRUD Productos</h1>
+  <h1 >CRUD</h1>
 
 <div id="globales">
   <!-- Filtro -->
   <label for="filtro-columna">🔍 Filtrar por:</label>
   <select id="filtro-columna">
-    <option value="NOMBRE_PRODUCTO">Nombre</option>
-    <option value="DESCRIPCION">Descripción</option>
-    <option value="PRECIO_UNITARIO">Precio</option>
-    <option value="STOCK_ACTUAL">Stock</option>
-    <option value="FECHA_INGRESO">Fecha de ingreso</option>
-    <option value="ID_CATEGORIA">ID Categoría</option>
   </select>
 
   <input type="text" id="valor-filtro" placeholder="Ingrese un valor..."/>
@@ -56,20 +51,9 @@
 
 <p id="mensaje-sin-resultados" style="display:none; color: red;">⚠️ No se encontraron coincidencias.</p>
 
-<table border="1">
-  <thead>
-    <tr>
-      <th>ID</th>
-      <th>Nombre</th>
-      <th>Descripción</th>
-      <th>Precio</th>
-      <th>Stock</th>
-      <th>Fecha Ingreso</th>
-      <th>Categoría</th>
-    </tr>
-  </thead>
-  <tbody id="tabla-productos"></tbody>
-</table>
+  <div id="contenedor-tabla">
+    <!-- Aquí se generará la tabla -->
+  </div>
 <div id="paginacion" class="paginacion"></div>
 
 </body>

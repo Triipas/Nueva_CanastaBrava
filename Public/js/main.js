@@ -1,10 +1,12 @@
+// Public/js/main
+
 // ===================
 // 🧠 Configuración Global e Inicialización
 // ===================
 
   let configuracionTablas = {};
 
-  let entidadActiva = 'productos';
+  let entidadActiva = 'categorias';
 
   let datos = [],
     filtroColumnaActual = null,
@@ -118,7 +120,7 @@ document.addEventListener("DOMContentLoaded", inicializarAplicacion);
       paginaActual = json.pagina;
       paginasTotales = json.paginas; 
 
-      renderizarTabla('tabla-' + entidad, datos, columnas, (tr, fila) => {
+      renderizarTabla('tabla', datos, columnas, (tr, fila) => {
         tr.addEventListener("click", () => {
           if (modoEdicionActivo && !filaSeleccionada) {
             activarEdicionEnFila(tr, entidad);

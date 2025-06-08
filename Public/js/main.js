@@ -6,7 +6,8 @@
 
   let configuracionTablas = {};
 
-  let entidadActiva = 'productos';
+  let path = window.location.pathname.split('/')[1];
+  let entidadActiva = path; // Si no hay nada, usa 'productos' como fallback
 
   let datos = [],
     filtroColumnaActual = null,

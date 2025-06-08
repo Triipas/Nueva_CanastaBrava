@@ -8,7 +8,22 @@ const configuracionTablas = require('./config/tablas');
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/static', express.static(path.join(__dirname, 'public')));
+
+// ⚠️ Manejar específicamente la raíz para que NO cargue el index.html
+app.get('/', (req, res) => {
+  res.status(404).send('Página no encontrada'); // o redirige si prefieres
+});
+
+// Servir el HTML dinámico para todas las entidades
+app.get('/:entidad', (req, res, next) => {
+  const entidad = req.params.entidad;
+  if (configuracionTablas[entidad]) {
+    res.sendFile(path.join(__dirname, 'public', 'index.html')); // o el nombre real de tu archivo HTML
+  } else {
+    next(); // Para que si no existe la entidad, dé 404
+  }
+});
 
 // Crear rutas automáticamente para todas las entidades configuradas
 Object.keys(configuracionTablas).forEach(entidad => {
@@ -66,5 +81,7 @@ const validationUtils = {
     }
   }
 };
+
+
 
 module.exports = validationUtils;

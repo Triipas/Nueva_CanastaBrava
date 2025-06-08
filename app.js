@@ -10,9 +10,9 @@ app.use(cors());
 app.use(express.json());
 app.use('/static', express.static(path.join(__dirname, 'public')));
 
-// ⚠️ Manejar específicamente la raíz para que NO cargue el index.html
+
 app.get('/', (req, res) => {
-  res.status(404).send('Página no encontrada'); // o redirige si prefieres
+  res.redirect('/inicio');
 });
 
 // Servir el HTML dinámico para todas las entidades
@@ -23,6 +23,19 @@ app.get('/:entidad', (req, res, next) => {
   } else {
     next(); // Para que si no existe la entidad, dé 404
   }
+});
+
+// Rutas para las páginas de navegación
+app.get('/inicio', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'inicio.html'));
+});
+
+app.get('/historial', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'historial.html'));
+});
+
+app.get('/backup', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'backup.html'));
 });
 
 // Crear rutas automáticamente para todas las entidades configuradas

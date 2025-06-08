@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   generarSelectFiltro();
   generarTablaDinamica();
+  actualizarTitulo();
 });
 
 function esperarConfiguracion() {
@@ -61,4 +62,10 @@ function formatearNombreCampo(campo) {
   return campo
     .replace(/_/g, ' ')
     .replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function actualizarTitulo() {
+  const entidad = entidadActiva;
+  const nombreFormateado = entidad.charAt(0).toUpperCase() + entidad.slice(1);
+  document.querySelector('h1').textContent = `Tabla de ${nombreFormateado}`;
 }

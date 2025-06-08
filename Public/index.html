@@ -4,57 +4,60 @@
   <meta charset="UTF-8">
   <title>CRUD</title>
   <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/menu.css">
   <script defer src="/static/js/generadorHTML.js"></script>
   <script defer src="/static/js/main.js"></script>
+  <script defer src="/static/js/menu.js"></script>
 </head>
 <body>
+  <nav id="menu-principal"></nav>
   <h1 >CRUD</h1>
 
-<div id="globales">
-  <!-- Filtro -->
-  <label for="filtro-columna">🔍 Filtrar por:</label>
-  <select id="filtro-columna">
-  </select>
+  <div id="globales">
+    <!-- Filtro -->
+    <label for="filtro-columna">🔍 Filtrar por:</label>
+    <select id="filtro-columna">
+    </select>
 
-  <input type="text" id="valor-filtro" placeholder="Ingrese un valor..."/>
-  <span id="filtro-fechas" style="display:none">
-    De <input type="date" id="fecha-inicio">
-    a <input type="date" id="fecha-fin">
-  </span>
-  <button id="btn-buscar-filtro" type="button">🔍 Buscar</button>
-  <button id="btn-limpiar-filtro">❌ Limpiar</button>
+    <input type="text" id="valor-filtro" placeholder="Ingrese un valor..."/>
+    <span id="filtro-fechas" style="display:none">
+      De <input type="date" id="fecha-inicio">
+      a <input type="date" id="fecha-fin">
+    </span>
+    <button id="btn-buscar-filtro" type="button">🔍 Buscar</button>
+    <button id="btn-limpiar-filtro">❌ Limpiar</button>
 
-  <!-- Botones globales -->
-  <button onclick="abrirFormularioPopup()">➕ Ingresar</button>
-  <button id="btn-recargar">🔄 Recargar</button>
-  <button id="btn-editar-global">✏️ Editar</button>
-  <button id="btn-eliminar-global">🗑️ Eliminar</button>
-  <button id="btn-confirmar-eliminacion" style="display:none;">🗑️ Eliminar productos</button>
-  <div id="boton-cancelar-modo-container"></div>
-  <span id="contador-registros"></span>
-</div>
-
-
-<div id="modal-popup" class="modal hidden">
-  <div class="modal-content">
-    <h2 id="modal-titulo">Agregar nuevo</h2>
-    <form id="formulario-popup"></form>
-    <div class="modal-buttons">
-      <button type="button" onclick="crearEntidadDesdeFormulario()">✅ Añadir</button>
-      <button type="button" onclick="cerrarFormularioPopup()">❌ Cancelar</button>
-    </div>
+    <!-- Botones globales -->
+    <button onclick="abrirFormularioPopup()">➕ Ingresar</button>
+    <button id="btn-recargar">🔄 Recargar</button>
+    <button id="btn-editar-global">✏️ Editar</button>
+    <button id="btn-eliminar-global">🗑️ Eliminar</button>
+    <button id="btn-confirmar-eliminacion" style="display:none;">🗑️ Eliminar productos</button>
+    <div id="boton-cancelar-modo-container"></div>
+    <span id="contador-registros"></span>
   </div>
 
-  <!-- Contenedor para contenido dinámico, como confirmaciones -->
-  <div id="modal-contenido-dinamico" style="display:none;"></div>
-</div>
 
-<p id="mensaje-sin-resultados" style="display:none; color: red;">⚠️ No se encontraron coincidencias.</p>
+  <div id="modal-popup" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="modal-titulo">Agregar nuevo</h2>
+      <form id="formulario-popup"></form>
+      <div class="modal-buttons">
+        <button type="button" onclick="crearEntidadDesdeFormulario()">✅ Añadir</button>
+        <button type="button" onclick="cerrarFormularioPopup()">❌ Cancelar</button>
+      </div>
+    </div>
+
+    <!-- Contenedor para contenido dinámico, como confirmaciones -->
+    <div id="modal-contenido-dinamico" style="display:none;"></div>
+  </div>
+
+  <p id="mensaje-sin-resultados" style="display:none; color: red;">⚠️ No se encontraron coincidencias.</p>
 
   <div id="contenedor-tabla">
     <!-- Aquí se generará la tabla -->
   </div>
-<div id="paginacion" class="paginacion"></div>
+  <div id="paginacion" class="paginacion"></div>
 
 </body>
 </html>

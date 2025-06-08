@@ -79,7 +79,8 @@
       const fin = document.getElementById("fecha-fin").value;
       if (!inicio || !fin) return alert("Debes seleccionar ambas fechas.");
       valorFiltro = `${inicio}|${fin}`;
-    } else {
+    }
+    else {
       valorFiltro = document.getElementById("valor-filtro").value.trim();
     }
 
@@ -122,62 +123,115 @@
 
   async function obtenerEntidadesPaginadas(pagina = 1, entidad = entidadActiva, columnas = configuracionEntidad[entidad].columnas) {
     try {
-      let url = `/${entidad}/paginar?pagina=${pagina}&limite=${limite}`; if (filtroColumnaActual && filtroValorActual) {
+      let url = `/${entidad}/paginar?pagina=${pagina}&limite=${limite}`; 
+
+      if (filtroColumnaActual && filtroValorActual) {
         url += `&columna=${encodeURIComponent(filtroColumnaActual.toLowerCase())}&valor=${encodeURIComponent(filtroValorActual)}`;
-      } const res = await fetch(url); const json = await res.json(); datos = json.datos || json[entidad] || []; paginaActual = json.pagina;
-      paginasTotales = json.paginas; renderizarTabla('tabla-' + entidad, datos, columnas, (tr, fila) => {
+      }
+      const res = await fetch(url); 
+      const json = await res.json(); 
+
+      datos = json.datos || json[entidad] || []; 
+      paginaActual = json.pagina;
+      paginasTotales = json.paginas; 
+
+      renderizarTabla('tabla-' + entidad, datos, columnas, (tr, fila) => {
         tr.addEventListener("click", () => {
           if (modoEdicionActivo && !filaSeleccionada) {
             activarEdicionEnFila(tr, entidad);
           }
         });
-      }); actualizarContadorRegistros(json.total, entidad); renderizarPaginacion(paginaActual, paginasTotales); console.log("✅ URL generada para fetch:", url);
+      }); 
+      actualizarContadorRegistros(json.total, entidad); 
+      renderizarPaginacion(paginaActual, paginasTotales); 
+      console.log("✅ URL generada para fetch:", url);
 
     } catch (error) {
-      console.error(`❌ Error al obtener ${entidad} paginados:`, error); mostrarErrorContador(entidad);
+      console.error(`❌ Error al obtener ${entidad} paginados:`, error); 
+      mostrarErrorContador(entidad);
     }
   }
 
   async function crearEntidadDesdeFormulario() {
-    const form = document.getElementById('formulario-popup'); if (!form.reportValidity()) return; const inputs = form.querySelectorAll('input'); const body = {}; inputs.forEach(input => {
-      const valor = input.value.trim(); if (input.type === 'number') {
+    const form = document.getElementById('formulario-popup');
+
+    if (!form.reportValidity()) return;
+
+    const inputs = form.querySelectorAll('input');
+    const body = {};
+
+    inputs.forEach(input => {
+      const valor = input.value.trim();
+      if (input.type === 'number') {
         body[formatearClave(input.name)] = valor ? parseFloat(valor) : null;
-      } else {
+      } 
+      else {
         body[formatearClave(input.name)] = valor || null;
       }
     });
 
     try {
       const response = await fetch(`/${entidadActiva}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-      }); if (!response.ok) {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!response.ok) {
         const errorData = await response.json();
-        console.error('❌ Error del servidor:', errorData); throw new Error(`Error ${response.status}: ${errorData.error || 'Error desconocido'}`);
-      } const data = await response.json();
+        console.error('❌ Error del servidor:', errorData);
+        throw new Error(`Error ${response.status}: ${errorData.error || 'Error desconocido'}`);
+      }
+      const data = await response.json();
       console.log('✅ Creado exitosamente:', data);
 
-    } catch (error) { console.error('❌ Error completo:', error); } cerrarFormularioPopup(); obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    }
+    catch (error) {
+      console.error('❌ Error completo:', error);
+    }
+    cerrarFormularioPopup();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
   }
 
   async function confirmarEdicion(id) {
-    const inputs = filaSeleccionada.querySelectorAll("input"); const columnas = configuracionEntidad[entidadActiva].columnas.slice(1); const body = {}; columnas.forEach((col, i) => {
+    const inputs = filaSeleccionada.querySelectorAll("input");
+    const columnas = configuracionEntidad[entidadActiva].columnas.slice(1);
+    const body = {};
+
+    columnas.forEach((col, i) => {
       const input = inputs[i];
-      if (!input) return; const valor = input.value.trim(); body[formatearClave(col.nombre)] = (input.type === 'number') ? parseFloat(valor) : valor;
-    }); await fetch(`/${entidadActiva}/${id}`, {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-    }); cancelarModo(); obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+      if (!input) return;
+      const valor = input.value.trim();
+      body[formatearClave(col.nombre)] = (input.type === 'number') ? parseFloat(valor) : valor;
+    });
+
+    await fetch(`/${entidadActiva}/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    cancelarModo();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
   }
 
   async function eliminarLote(ids) {
-    const errores = []; for (const id of ids) {
+    const errores = [];
+    for (const id of ids) {
       try {
-        const res = await fetch(`/${entidadActiva}/${id}`, { method: "DELETE" }); if (!res.ok) throw new Error(`Falló el ID ${id}`);
-      } catch (error) {
+        const res = await fetch(`/${entidadActiva}/${id}`,{ method: "DELETE" });
+
+        if (!res.ok) throw new Error(`Falló el ID ${id}`);
+      }
+      catch (error) {
         errores.push(`❌ ID ${id}: ${error.message}`);
       }
-    } cerrarFormularioPopup(); if (errores.length > 0) {
+    }
+    cerrarFormularioPopup();
+
+    if (errores.length > 0) {
       alert("Algunas eliminaciones fallaron:\n" + errores.join('\n'));
-    } cancelarModo(); obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    }
+    cancelarModo();
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
   }
 
 // ===================
@@ -185,43 +239,83 @@
 // ===================
 
   function renderizarTabla(idTabla, data, columnas, eventosPorFila = () => { }) {
-    const tabla = document.getElementById(idTabla); tabla.innerHTML = ''; data.forEach(fila => {
-      const tr = document.createElement('tr'); tr.dataset.id = fila[columnas[0].nombre]; if (modoEliminacionActivo) {
-        const tdCheckbox = document.createElement('td'); const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.classList.add('checkbox-eliminar'); checkbox.dataset.id = fila[columnas[0].nombre]; tdCheckbox.appendChild(checkbox); tr.appendChild(tdCheckbox);
-      } columnas.forEach(col => {
-        const valor = fila[col.nombre]; const td = document.createElement('td'); td.textContent = (valor == null) ? '' :
+    const tabla = document.getElementById(idTabla);
+    tabla.innerHTML = '';
+    data.forEach(fila => {
+      const tr = document.createElement('tr');
+      tr.dataset.id = fila[columnas[0].nombre];
+
+      if (modoEliminacionActivo) {
+        const tdCheckbox = document.createElement('td');
+        const checkbox = document.createElement('input');
+
+        checkbox.type = 'checkbox';
+        checkbox.classList.add('checkbox-eliminar');
+
+        checkbox.dataset.id = fila[columnas[0].nombre];
+        tdCheckbox.appendChild(checkbox);
+        tr.appendChild(tdCheckbox);
+      }
+      columnas.forEach(col => {
+        const valor = fila[col.nombre];
+        const td = document.createElement('td');
+
+        td.textContent = (valor == null) ? '' :
           (typeof valor === 'number') ?
             (Number.isInteger(valor) ? valor : valor.toFixed(2)) :
             valor;
 
         tr.appendChild(td);
-      }); eventosPorFila(tr, fila); tabla.appendChild(tr);
-    }); const thead = document.querySelector("thead tr");
+      });
+
+      eventosPorFila(tr, fila);
+      tabla.appendChild(tr);
+    });
+    const thead = document.querySelector("thead tr");
     if (modoEliminacionActivo) {
       if (!thead.querySelector("th.checkbox-header")) {
         const th = document.createElement("th"); th.textContent = "";
         th.classList.add("checkbox-header");
         thead.insertBefore(th, thead.firstChild);
       }
-    } else {
+    }
+    else {
       const thCheckbox = document.querySelector("th.checkbox-header");
       if (thCheckbox) thCheckbox.remove();
     }
   }
 
   function renderizarPaginacion(pagina, totalPaginas) {
-    const contenedor = document.getElementById("paginacion"); contenedor.innerHTML = ""; if (totalPaginas <= 1) return; const crearBoton = (texto, nuevaPagina, deshabilitado = false) => {
-      const btn = document.createElement("button"); btn.textContent = texto; btn.disabled = deshabilitado; btn.addEventListener("click", () => {
+    const contenedor = document.getElementById("paginacion");
+    contenedor.innerHTML = "";
+
+    if (totalPaginas <= 1) return;
+
+    const crearBoton = (texto, nuevaPagina, deshabilitado = false) => {
+      const btn = document.createElement("button");
+      btn.textContent = texto;
+      btn.disabled = deshabilitado;
+
+      btn.addEventListener("click", () => {
         const columnas = configuracionEntidad[entidadActiva].columnas;
         obtenerEntidadesPaginadas(nuevaPagina, entidadActiva, columnas);
       });
 
       return btn;
-    }; contenedor.appendChild(crearBoton("⏮", 1, pagina === 1)); contenedor.appendChild(crearBoton("◀ Anterior", pagina - 1, pagina === 1)); const rango = 2; for (let i = Math.max(1, pagina - rango); i <= Math.min(totalPaginas, pagina + rango); i++) {
-      const btn = crearBoton(i, i); if (i === pagina) btn.disabled = true;
+    };
+
+    contenedor.appendChild(crearBoton("⏮", 1, pagina === 1));
+    contenedor.appendChild(crearBoton("◀ Anterior", pagina - 1, pagina === 1));
+    const rango = 2;
+
+    for (let i = Math.max(1, pagina - rango);i <= Math.min(totalPaginas, pagina + rango); i++) {
+      const btn = crearBoton(i, i);
+      if (i === pagina) btn.disabled = true;
 
       contenedor.appendChild(btn);
-    } contenedor.appendChild(crearBoton("Siguiente ▶", pagina + 1, pagina === totalPaginas)); contenedor.appendChild(crearBoton("⏭", totalPaginas, pagina === totalPaginas));
+    }
+    contenedor.appendChild(crearBoton("Siguiente ▶", pagina + 1, pagina === totalPaginas));
+    contenedor.appendChild(crearBoton("⏭", totalPaginas, pagina === totalPaginas));
   }
 
   function actualizarContadorRegistros(cantidad, entidad) {
@@ -250,22 +344,56 @@
   }
 
   function activarModoEliminacion() {
-    if (modoEliminacionActivo) return; modoEliminacionActivo = true; desactivarBotonesGlobales(); mostrarBotonCancelarModo(); const btnEliminarGlobal = document.getElementById("btn-eliminar-global");
-    btnEliminarGlobal.style.display = "none"; const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
-    btnConfirmar.style.display = "inline-block"; const nuevoBtnConfirmar = btnConfirmar.cloneNode(true); btnConfirmar.replaceWith(nuevoBtnConfirmar); nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados); obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+    if (modoEliminacionActivo) return;
+    modoEliminacionActivo = true;
+
+    desactivarBotonesGlobales();
+    mostrarBotonCancelarModo();
+
+    const btnEliminarGlobal = document.getElementById("btn-eliminar-global");
+    btnEliminarGlobal.style.display = "none";
+
+    const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
+    btnConfirmar.style.display = "inline-block";
+
+    const nuevoBtnConfirmar = btnConfirmar.cloneNode(true);
+    btnConfirmar.replaceWith(nuevoBtnConfirmar);
+    nuevoBtnConfirmar.addEventListener("click", confirmarEliminarSeleccionados);
+    
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
   }
 
   function cancelarModo() {
-    modoEdicionActivo = false; modoEliminacionActivo = false; filaSeleccionada = null; activarBotonesGlobales(); const btnEliminar = document.getElementById("btn-eliminar-global"); if (btnEliminar) btnEliminar.style.display = "inline-block"; const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
+    modoEdicionActivo = false;
+    modoEliminacionActivo = false;
+    filaSeleccionada = null;
+
+    activarBotonesGlobales();
+
+    const btnEliminar = document.getElementById("btn-eliminar-global");
+    if (btnEliminar) btnEliminar.style.display = "inline-block";
+    const btnConfirmar = document.getElementById("btn-confirmar-eliminacion");
 
     if (btnConfirmar) {
-      btnConfirmar.style.display = "none"; btnConfirmar.replaceWith(btnConfirmar.cloneNode(true));
-    } document.getElementById("boton-cancelar-modo-container").innerHTML = ''; obtenerEntidadesPaginadas(paginaActual, entidadActiva);
+      btnConfirmar.style.display = "none";
+      btnConfirmar.replaceWith(btnConfirmar.cloneNode(true));
+    }
+
+    document.getElementById("boton-cancelar-modo-container").innerHTML = '';
+    obtenerEntidadesPaginadas(paginaActual, entidadActiva);
   }
 
   function activarEdicionEnFila(tr, entidad) {
-    if (filaSeleccionada) return; filaSeleccionada = tr; const columnas = configuracionEntidad[entidad].columnas; for (let i = 1; i < columnas.length; i++) {
-      const colConfig = columnas[i]; const td = tr.children[modoEliminacionActivo ? i + 1 : i]; const valor = td.textContent; let tipoInput;
+    if (filaSeleccionada) return;
+    filaSeleccionada = tr;
+    const columnas = configuracionEntidad[entidad].columnas;
+
+    for (let i = 1; i < columnas.length; i++) {
+      const colConfig = columnas[i];
+      const td = tr.children[modoEliminacionActivo ? i + 1 : i];
+      const valor = td.textContent;
+      let tipoInput;
+
       switch (colConfig.tipo) {
         case 'fecha':
           tipoInput = 'date'; break;
@@ -273,16 +401,26 @@
           tipoInput = 'number'; break;
         default:
           tipoInput = 'text';
-      }      const input = document.createElement('input');
-      input.type = tipoInput; input.value = valor; td.textContent = ''; td.appendChild(input);
-    } mostrarBotonesEdicion(tr.dataset.id);
+      }
+
+      const input = document.createElement('input');
+      input.type = tipoInput; input.value = valor;
+      td.textContent = '';
+      td.appendChild(input);
+    }
+    mostrarBotonesEdicion(tr.dataset.id);
   }
 
   function confirmarEliminarSeleccionados() {
-    const checkboxes = document.querySelectorAll('.checkbox-eliminar:checked'); if (checkboxes.length === 0) {
+    const checkboxes = document.querySelectorAll('.checkbox-eliminar:checked');
+    if (checkboxes.length === 0) {
       alert("Selecciona al menos un registro para eliminar.");
       return;
-    } const confirmacion = confirm(`¿Estás seguro de que deseas eliminar ${checkboxes.length} registros? Esta acción no se puede deshacer.`); if (!confirmacion) return; const idsAEliminar = Array.from(checkboxes).map(cb => cb.dataset.id); eliminarLote(idsAEliminar);
+    }
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar ${checkboxes.length} registros? Esta acción no se puede deshacer.`);
+    if (!confirmacion) return;
+    const idsAEliminar = Array.from(checkboxes).map(cb => cb.dataset.id);
+    eliminarLote(idsAEliminar);
   }
 
   function mostrarBotonCancelarModo() {
@@ -350,7 +488,8 @@
   }
 
   function cerrarFormularioPopup() {
-    document.getElementById('modal-popup').classList.add('hidden'); const formulario = document.getElementById("formulario-popup");
+    document.getElementById('modal-popup').classList.add('hidden');
+    const formulario = document.getElementById("formulario-popup");
     formulario.style.display = "block";
     formulario.innerHTML = "";
 

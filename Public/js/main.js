@@ -6,7 +6,7 @@
 
   let configuracionTablas = {};
 
-  let entidadActiva = 'categorias';
+  let entidadActiva = 'productos';
 
   let datos = [],
     filtroColumnaActual = null,

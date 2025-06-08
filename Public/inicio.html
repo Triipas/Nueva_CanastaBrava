@@ -1,15 +1,142 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Inicio</title>
-  <link rel="stylesheet" href="/static/css/style.css">
-  <link rel="stylesheet" href="/static/css/menu.css">
-  <script defer src="/static/js/menu.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Canasta Brava - Frutas Frescas en Arequipa</title>
+    <link rel="stylesheet" href="/static/css/menu.css">
+    <link rel="stylesheet" href="/static/css/inicio.css">
+    <script defer src="/static/js/menu.js"></script>
+    <script defer src="/static/js/inicio.js"></script>
+
 </head>
 <body>
   <nav id="menu-principal"></nav>
-  <h1>Bienvenido a La Canasta Brava</h1>
-  <p>Este es el panel de inicio.</p>
+    <header>
+        <nav class="container">
+            <div class="logo">La Canasta Brava</div>
+            <ul class="nav-menu">
+                <li><a href="#inicio">Inicio</a></li>
+                <li><a href="#nosotros">Nosotros</a></li>
+                <li><a href="#servicios">Servicios</a></li>
+                <li><a href="#contacto">Contacto</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <section id="inicio" class="hero">
+        <div class="container">
+            <h1>La Canasta Brava</h1>
+            <p>Frutas frescas y productos de calidad directo a tu hogar en Arequipa</p>
+            <a href="#contacto" class="cta-button">Haz tu pedido</a>
+        </div>
+    </section>
+
+    <section id="nosotros" class="about">
+        <div class="container">
+            <div class="about-content">
+                <div class="about-text fade-in">
+                    <h2>8 años llevando calidad a tu mesa</h2>
+                    <p>Somos una empresa familiar arequipeña especializada en la comercialización de frutas frescas y servicio de delivery. Fundada por emprendedores locales, nos hemos consolidado como una de las principales proveedoras de frutas en Arequipa.</p>
+                    <p>Nuestro compromiso con la calidad, precios justos y un servicio cercano al cliente nos ha permitido crecer y ganar la confianza de miles de familias arequipeñas.</p>
+                    <div class="stats">
+                        <div class="stat">
+                            <span class="stat-number">8</span>
+                            <span class="stat-label">Años de experiencia</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">4</span>
+                            <span class="stat-label">Sucursales</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number">100%</span>
+                            <span class="stat-label">Productos frescos</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="about-image fade-in">
+                    <div style="background: linear-gradient(45deg, #e8f5e8, #d4e6d4); height: 400px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 4rem; color: #27ae60;">🍎🥭🍌</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="servicios" class="services">
+        <div class="container">
+            <h2 class="fade-in">Nuestros Servicios</h2>
+            <div class="services-grid">
+                <div class="service-card fade-in">
+                    <div class="service-icon">🚚</div>
+                    <h3>Delivery Rápido</h3>
+                    <p>Entrega rápida y segura en toda la ciudad de Arequipa. Tu pedido llegará fresco y a tiempo.</p>
+                </div>
+                <div class="service-card fade-in">
+                    <div class="service-icon">🍊</div>
+                    <h3>Frutas Frescas</h3>
+                    <p>Seleccionamos cuidadosamente las mejores frutas para garantizar la máxima calidad y frescura.</p>
+                </div>
+                <div class="service-card fade-in">
+                    <div class="service-icon">💰</div>
+                    <h3>Precios Justos</h3>
+                    <p>Ofrecemos productos de primera calidad a precios competitivos y acordes al mercado local.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="values">
+        <div class="container">
+            <h2 class="fade-in">Nuestros Valores</h2>
+            <div class="values-grid">
+                <div class="value-item fade-in">
+                    <h3>Calidad</h3>
+                    <p>Seleccionamos solo los mejores productos para nuestros clientes</p>
+                </div>
+                <div class="value-item fade-in">
+                    <h3>Servicio</h3>
+                    <p>Atención personalizada y amable que supera expectativas</p>
+                </div>
+                <div class="value-item fade-in">
+                    <h3>Convivencia</h3>
+                    <p>Construimos relaciones duraderas con nuestra comunidad</p>
+                </div>
+                <div class="value-item fade-in">
+                    <h3>Sostenibilidad</h3>
+                    <p>Comprometidos con el cuidado del medio ambiente</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="contacto" class="contact">
+        <div class="container">
+            <h2 class="fade-in">¿Listo para tu próximo pedido?</h2>
+            <p class="fade-in">Contáctanos y descubre por qué somos la opción preferida de las familias arequipeñas</p>
+            <div class="contact-info fade-in">
+                <div class="contact-item">
+                    <span>📞</span>
+                    <span>Llámanos para tu pedido</span>
+                </div>
+                <div class="contact-item">
+                    <span>🏪</span>
+                    <span>4 sucursales en Arequipa</span>
+                </div>
+                <div class="contact-item">
+                    <span>🚚</span>
+                    <span>Delivery en toda la ciudad</span>
+                </div>
+            </div>
+            <div style="margin-top: 2rem;">
+                <a href="#inicio" class="cta-button">Volver al inicio</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 La Canasta Brava E.I.R.L. - RUC: 20608721119. Todos los derechos reservados.</p>
+        </div>
+    </footer>
+
 </body>
 </html>

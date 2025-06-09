@@ -2,7 +2,7 @@
 
 document.addEventListener('DOMContentLoaded', async () => {
   await esperarConfiguracion();
-
+  generarMenuEntidades();
   generarSelectFiltro();
   generarTablaDinamica();
   actualizarTitulo();
@@ -68,4 +68,18 @@ function actualizarTitulo() {
   const entidad = entidadActiva;
   const nombreFormateado = entidad.charAt(0).toUpperCase() + entidad.slice(1);
   document.querySelector('h1').textContent = `Tabla de ${nombreFormateado}`;
+}
+
+function generarMenuEntidades() {
+  const menu = document.getElementById('menu-entidades');
+  menu.innerHTML = ''; // limpiar por si se vuelve a generar
+
+  Object.keys(configuracionTablas).forEach(entidad => {
+    const boton = document.createElement('button');
+    boton.textContent = entidad.charAt(0).toUpperCase() + entidad.slice(1);
+    boton.addEventListener('click', () => {
+      window.location.href = `/${entidad}`;
+    });
+    menu.appendChild(boton);
+  });
 }

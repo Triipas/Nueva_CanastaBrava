@@ -292,6 +292,30 @@ const configuracionTablas = {
       'estado_caducidad'
     ]
   },
+  stock_minimo_maximo: {
+    tabla: 'Stock_Minimo_Maximo',
+    primaryKey: 'id_producto',
+    campos: {
+      id_producto:   { tipo: 'number', requerido: true },
+      stock_minimo:  { tipo: 'number', requerido: true },
+      stock_maximo:  { tipo: 'number', requerido: true }
+    },
+    camposSelect: `
+      id_producto,
+      stock_minimo,
+      stock_maximo
+    `,
+    camposBusqueda: {
+      id_producto:  { tipo: 'exact' },
+      stock_minimo: { tipo: 'exact' },
+      stock_maximo: { tipo: 'exact' }
+    },
+    camposOrden: [
+      'id_producto',
+      'stock_minimo',
+      'stock_maximo'
+    ]
+  },
 };
 
 module.exports = configuracionTablas;

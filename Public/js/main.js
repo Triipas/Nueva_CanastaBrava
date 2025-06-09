@@ -7,14 +7,14 @@
   let configuracionTablas = {};
 
   let path = window.location.pathname.split('/')[1];
-  let entidadActiva = path; // Si no hay nada, usa 'productos' como fallback
+  let entidadActiva = path;
 
   let datos = [],
     filtroColumnaActual = null,
     filtroValorActual = null,
     paginasTotales = 1,
     paginaActual = 1,
-    limite = 12;
+    limite = 10;
 
   let modoEdicionActivo = false,
     modoEliminacionActivo = false,

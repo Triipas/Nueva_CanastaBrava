@@ -135,3 +135,17 @@ tbody tr:nth-child(even) {
   border-radius: 5px;
   height: 30px;
 }
+
+.menu-entidades {
+  margin: 10px 0;
+}
+
+.menu-entidades button {
+  margin-right: 5px;
+  padding: 5px 10px;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid #e2e2e2;
+  border-radius: 5px;
+  height: 35px;
+}
